@@ -32,7 +32,7 @@ require "chat3_lib.cgi";
 
 # Pull in our configuration information
 	&evalFile("./config.cgi");
-	(defined &getConfig) ? (our $config = &getConfig) : (die("I can't seem to find my configuration.\n"));
+	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
 	(defined &getGuardList) ? (our $guard_list = &getGuardList) : (die("I can't seem to find my guard configuration.\n"));
 
 # Pull in the session manager

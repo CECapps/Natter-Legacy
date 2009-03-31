@@ -32,7 +32,7 @@ require "chat3_lib.cgi";
 
 # Pull in our configuration information
 	&evalFile("./config.cgi");
-	(defined &getConfig) ? (our $config = &getConfig) : (die("I can't seem to find my configuration.\n"));
+	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
 
 # Pull in the session manager
 	our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });

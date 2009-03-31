@@ -57,9 +57,21 @@
 		'HRColor2' 			=> '#ABA457',
 	), $base_style);
 // And we'll pick...
-	$style = $bronze_style;
+	$styles = array(
+		'blue' => $blue_style,
+		'orange' => $orange_style,
+		'bronze' => $bronze_style
+	);
+// ... which one, exactly?
+	if(!isset($_GET['style']))
+		$_GET['style'] = 'bronze';
+	if(!isset($styles[ $_GET['style'] ]))
+		$_GET['style'] = 'bronze';
+// ... this one!
+	$style = $styles[ $_GET['style'] ];
 
 	$css = <<<THESTYLESHEET
+/* STYLE = {$_GET['style']} */
 	body  {
 		background: {$style['BGColor']};
 		font-family: Verdana, Helvetica, Arial, sans-serif;
