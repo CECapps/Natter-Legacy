@@ -18,7 +18,7 @@ use Fcntl qw(:flock);
 use DateTime;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.9.1';
+our $VERSION = '4.9.2';
 our $VERSION_TAG = '"Diaspora"';
 
 
@@ -47,7 +47,14 @@ our $VERSION_TAG = '"Diaspora"';
 # updatable in new configs, and a lack of a control panel thing.
 	sub getConfigPlusDefaults {
 		$config = &getConfig;
+	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
+	# Only reset the COPPA age if it actually has not been defined.
+		$config->{COPPAAge} ||= 13 if(!exists $config->{COPPAAge});
+	# The old cookie prefix used to be the script name.  This does not work
+	# very well when there are multiple instances of the scripts installed.
+	# No, using cookie domains or paths isn't a better solution ... for now.
+		$config->{CookiePrefix} ||= $config->{Script};
 		return $config;
 	} # end getConfigPlusDefaults
 
@@ -184,7 +191,10 @@ STANDARDhtml
 # If there's no cookie, bail
 # If there's an underage cookie, complain.
 	sub checkCOPPACookie {
-		my @coppa = cookie("$config->{Script}_COPPA");
+	# But don't check if COPPA checking is disabled
+		return if(!$config->{COPPAAge});
+	# Did the user already submit the cookie?
+		my @coppa = cookie("$config->{CookiePrefix}_COPPA");
 		if($coppa[0]) {
 			if($coppa[0] eq "under") {
 				&noEntry_COPPA;
@@ -200,12 +210,12 @@ STANDARDhtml
 
 # Check to see if the user has been banned.
 	sub checkKickBanCookie {
-		my @bannage = cookie("$config->{Script}_b4nn4g3");
+		my @bannage = cookie("$config->{CookiePrefix}_b4nn4g3");
 		if(@bannage) {
 		# Cookies will always use unmodified time(), which provides UTC seconds
 			if($bannage[0] < time()) {
 				&printCookie(cookie(
-						-name    => "$config->{Script}_b4nn4g3",
+						-name    => "$config->{CookiePrefix}_b4nn4g3",
 						-value   => ["", ],
 					));
 			} else {
@@ -220,7 +230,7 @@ STANDARDhtml
 
 # Check to see if our normal cookie is present. If not, bail.
 	sub checkSanityCookie {
-		my @sanity = cookie("$config->{Script}_sanity");
+		my @sanity = cookie("$config->{CookiePrefix}_sanity");
 		unless(($sanity[0] eq "keeper") && ($sessions->is_valid($sanity[1]))) {
 			&noEntry_Insane;
 		} # end unless
@@ -229,13 +239,13 @@ STANDARDhtml
 
 # Check to see if the guard script cookie is present.  If not, prompt the user to log in.
 	sub checkAuthCookie {
-		my @auth = cookie("$config->{Script}_guard");
+		my @auth = cookie("$config->{CookiePrefix}_guard");
 		if(!@auth) {
 			if(exists $in{'username'}) {
 				if(exists $guard_list->{$in{'username'}}) {
 					if($in{'password'} eq $guard_list->{$in{'username'}}) {
 						&printCookie(cookie(
-							-name    => "$config->{Script}_guard",
+							-name    => "$config->{CookiePrefix}_guard",
 							-value   => [$in{username}, $in{password}],
 							));
 						return;
@@ -252,7 +262,7 @@ STANDARDhtml
 				&standardHTML({
 					header => "Enter Authorization",
 					body => <<FORMBODY
-<form id="entrance" method="POST" action="$config->{GuardScript}">
+<form id="entrance" method="POST" action="$config->{GuardScriptName}">
 <table border="0" align="center">
 <tr><td class="body">Username:</td><td><input type="text" name="username" id="username" class="textbox"></td></tr>
 <tr><td class="body">Password:</td><td><input type="password" name="password" id="password" class="textbox"></td></tr>
@@ -270,7 +280,7 @@ FORMBODY
 
 # Check to see if the user is logged in.  If so, return true.
 	sub checkAuthCookie2 {
-		my @auth = cookie("$config->{Script}_guard");
+		my @auth = cookie("$config->{CookiePrefix}_guard");
 		if(!@auth) {
 			if(exists $in{'username'}) {
 				if(exists $guard_list->{$in{'username'}}) {
@@ -309,7 +319,7 @@ FORMBODY
 # Complain that the user is underage.
 	sub noEntry_COPPA {
 		&printCookie(cookie(
-				-name    => "$config->{Script}_COPPA",
+				-name    => "$config->{CookiePrefix}_COPPA",
 				-value   => ["under", ],
 				-expires => '+1h'
 			));
@@ -334,11 +344,11 @@ FORMBODY
 
 # Try to set a cookie to ensure the client supports cookies
 	sub decideSanity {
-		my @sanity = cookie("$config->{Script}_sanity");
+		my @sanity = cookie("$config->{CookiePrefix}_sanity");
 		my $sanein = ($sessions->load_if_valid($sanity[1]) ? $sanity[1] : $sessions->make_new() );
 		if($sanein ne $sanity[1]) {
 			&printCookie(cookie(
-				-name => "$config->{Script}_sanity",
+				-name => "$config->{CookiePrefix}_sanity",
 				-value => ["keeper", $sanein],
 			));
 		} # end if
@@ -351,7 +361,7 @@ FORMBODY
 		my $bannage = $sessions->this_banned();
 		if($bannage) {
 			&printCookie(cookie(
-				-name => "$config->{Script}_b4nn4g3",
+				-name => "$config->{CookiePrefix}_b4nn4g3",
 				-value => [$bannage],
 				-expires => '+1y'
 			));
@@ -433,6 +443,59 @@ FORMBODY
         return '#' . join('', @new_rgb);
     } # end fix_color
 
+# Get a name back from a color code
+	sub getColorName {
+		my $hex = lc(shift);
+		&generateReverseColorMap() if(!defined $reverse_color_map);
+		return defined $reverse_color_map->{$hex} ? $reverse_color_map->{$hex} : $hex;
+	} # end getColorName
+
+# Flip the color maps
+	sub generateReverseColorMap {
+		$reverse_color_map = {};
+	# Simple reverse is easy...
+		foreach my $color (sort keys %color_map) {
+			my $hex = lc($color_map{$color});
+			$reverse_color_map->{$hex} = $color;
+		} # end foreach
+	# But the broken list is painful.  Colors are repeated multiple times...
+		my %multiples;
+		foreach my $color (sort keys %broken_color_map) {
+			my $hex = lc($broken_color_map{$color});
+			if(exists $reverse_color_map->{$hex}) {
+			# It's a multiple!  Drop it in the list to look at later...
+				my $sec = $multiples{$hex};
+				$sec = [] if(!defined $sec);
+				$sec->[scalar @$sec] = $color;
+				$multiples{$hex} = $sec;
+			} else {
+			# Woo, clear.
+				$reverse_color_map{$hex} = $color;
+			} # end if
+		} # end foreach
+	# Multiples, ARGH!
+		foreach my $hex (keys %multiples) {
+			$mult = $multiples{$hex};
+		# Pull the canonical color back in the list.
+			$mult[scalar @$mult] = $reverse_color_map->{$hex};
+		# Try to pick names in the official list first.
+			my @official = sort grep { exists $color_map{$_} } @$multi;
+			if(scalar @official > 0) {
+				$reverse_color_map->{$hex} = $official[0];
+				next;
+			} # end if
+		# Try to pick names without numbers second.
+			my @nonum = sort grep { !m/\d+$/ } @$mult;
+			if(scalar @nonum > 0) {
+				$reverse_color_map->{$hex} = $nonum[0];
+				next;
+			} # end if
+		# It's not official, and it has numbers.  Crap on a stick.  Just pick
+		# the first sorted name we have and run with it.
+			my @mutter = sort @$mult;
+			$reverse_color_map->{$hex} = $mutter[0];
+		} # end foreach
+	} # end generateReverseColorMap
 
 # The Netscape Color Names
     our %color_map = (
@@ -1188,5 +1251,7 @@ FORMBODY
 		'gray1'		=>	'#030303',
 
 	);
+
+	our $reverse_color_map;
 
 1;

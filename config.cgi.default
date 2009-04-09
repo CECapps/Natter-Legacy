@@ -15,10 +15,11 @@
 # Questions?  Comments?  <capps@solareclipse.net>
 
 sub getConfig {
-# Quick configuration for sane virtual hosting.  You may need to massively rewrite this.
-	my $baseurl = '';
-	my $basepath = '';
-	my $pubdirname = '';
+# Quick configuration for sane virtual hosting.  You may need to massively rewrite this
+# if you need to put CGI scripts in an external cgi-bin directory.
+	my $baseurl = 'http://www.example.com';
+	my $basepath = '/home/example.com/public_html';
+	my $pubdirname = '/chat';
 
 	my $z = {
 	# URLs
@@ -38,6 +39,8 @@ sub getConfig {
 		TimeZoneCode	=> 'America/Los_Angeles', # see http://en.wikipedia.org/wiki/List_of_zoneinfo_time_zones
 		TimeZoneName 	=> 'Pacific',
 		ChatName		=> q!CHAT NAME GOES HERE!,
+		COPPAAge		=> 13,
+		CookiePrefix	=> 'chat',
 	};
 
 # Options based on configurations.  Don't touch this.

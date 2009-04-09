@@ -86,7 +86,7 @@ require "chat3_lib.cgi";
 
 		my $file = &openFile($config->{NonCGIPath} . "/chat.html");
 		my $frametop = qq(<frameset cols="*, 210" border="2">);
-		my $framebo = qq(<frame src="$config->{GuardScript}?action=view" name="ips" id="ips" scrolling="auto"></frameset>);
+		my $framebo = qq(<frame src="$config->{GuardScriptName}?action=view" name="ips" id="ips" scrolling="auto"></frameset>);
 		$file =~ s/\<\!-- GFS --\>/$frametop/;
 		$file =~ s/\<\!-- EGFS --\>/$framebo/;
 		print header . $file;
@@ -352,7 +352,7 @@ $html
 				$sessions->ban_current({
 				# time() -> UTC, fine here
 					TIME	=> (time() + ($in{time} * 60)),
-					BY		=> (cookie("$config->{Script}_guard"))[0], # OH GOD WHAT
+					BY		=> (cookie("$config->{CookiePrefix}_guard"))[0], # OH GOD WHAT
 					FOR		=> $in{reason}
 				});
 				$sessions->record();
@@ -372,7 +372,7 @@ $html
 			$sessions->add_ip_ban($thisip, {
 			# time() -> UTC, fine here
 				TIME	=> (time() + ($in{time} * 60)),
-				BY		=> (cookie("$config->{Script}_guard"))[0],
+				BY		=> (cookie("$config->{CookiePrefix}_guard"))[0],
 				FOR		=> $in{reason},
 				STARTTIME => time()
 			});
@@ -414,7 +414,7 @@ $html
 		my $thisip = $in{ip};
 		$sessions->remove_ip_ban($thisip, {
 			TIME => time(),
-			LIFTEDBY => (cookie("$config->{Script}_guard"))[0]
+			LIFTEDBY => (cookie("$config->{CookiePrefix}_guard"))[0]
 		});
 		$sessions->write_ip_ban();
 		&standardHTML(qq!Ban lifted.<br /><a href="$config->{GuardScriptName}?action=bans">Back</a>!);

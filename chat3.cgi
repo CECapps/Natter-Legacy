@@ -45,7 +45,7 @@ require "chat3_lib.cgi";
 	our %in = map{$_ => CGI::param($_)} CGI::param();
 
 # This code was designed when the COPPA law was interpreted more striclty than
-# it was now.  We force the user to indicate their age is 13 or greater.
+# it was now.  The minimum entry age can be dictated in the config, or disabled.
 	&checkCOPPACookie;
 
 # Make sure user isn't banned or kicked
@@ -90,23 +90,37 @@ require "chat3_lib.cgi";
 	# Plant a cookie
 		&decideSanity;
 	# If they've already done the age check, throw them at the post form.
-		if((cookie("$config->{Script}_COPPA"))[0] eq "over") {
+		if((cookie("$config->{CookiePrefix}_COPPA"))[0] eq "over") {
 			&printHeader("Location: $config->{ScriptName}?action=post\n");
 		} # end if
 	# Produce the form
-		&standardHTML({
-			header => "Welcome to $config->{ChatName}",
-			body => <<COPPA_CHECK
+		if($config->{COPPAAge}) {
+			&standardHTML({
+				header => "Welcome to $config->{ChatName}",
+				body => <<COPPA_CHECK
 Thank you for visiting.  In order to enter this chat, you must verify your age.
 <br />
 <br />
-<a href="$config->{ScriptName}?action=coppa&check=over">I am 13 or older.</a>
+<a href="$config->{ScriptName}?action=coppa&check=over">I am $config->{COPPAAge} or older.</a>
 &nbsp; &nbsp; | &nbsp; &nbsp;
-<a href="$config->{ScriptName}?action=coppa&check=under">I am under 13.</a>
+<a href="$config->{ScriptName}?action=coppa&check=under">I am under $config->{COPPAAge}.</a>
 COPPA_CHECK
 ,
-			footer => "",
-		});
+				footer => "",
+			});
+		} else {
+			&standardHTML({
+				header => "Welcome to $config->{ChatName}",
+				body => <<COPPA_CHECK
+Thank you for visiting.  Please be sure to read the rules before joining the chat.
+<br />
+<br />
+<a href="$config->{ScriptName}?action=coppa&check=over">Enter Chat</a>
+COPPA_CHECK
+,
+				footer => "",
+			});
+		} # end if
 	} # end sub
 
 
@@ -120,7 +134,7 @@ COPPA_CHECK
 	# Set a cookie with their decision.  This will last one hour, during whic
 	# they can come back to the chat without being prompted to re-enter their age.
 		&printCookie(cookie(
-				-name    => "$config->{Script}_COPPA",
+				-name    => "$config->{CookiePrefix}_COPPA",
 				-value   => [$this, ],
 				-expires => '+1h'
 			));
@@ -128,7 +142,7 @@ COPPA_CHECK
 		if($this eq "under") {
 			&standardHTML({
 				header => "Sorry",
-				body => "We do not permit those under 13 years of age to chat here.  You can thank the US government for making us check.",
+				body => "We do not permit those under $config->{COPPAAge} years of age to chat here.",
 				footer => "",
 			});
 			&Exit();
@@ -372,8 +386,8 @@ COPPA_CHECK
 	# Fields are labled by replacing the value with the label when there's no value
 		$clone{'username'} = $in{username} || "Name";
 		$clone{'url'} = CGI::escapeHTML($clone{'url'}) || "URL";
-		$clone{'mcolor'} = CGI::escapeHTML($clone{'mcolor'}) || "Message Color";
-		$clone{'color'} = CGI::escapeHTML($clone{'color'}) || "white";
+		$clone{'mcolor'} = CGI::escapeHTML(&getColorName($clone{'mcolor'})) || "Message Color";
+		$clone{'color'} = CGI::escapeHTML(&getColorName($clone{'color'})) || "white";
 	# The caption field replaces the email field, if the caption field is used
 		if($config->{EnableCaptions}) {
 			$clone{'caption'} ||= "Caption";

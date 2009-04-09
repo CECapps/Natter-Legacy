@@ -1,5 +1,27 @@
 Natter Changelog
 
+Version: 4.9.2
+Date: April 8, 2009
+ - Cookie prefix is now seperate from script name, but defaults to the old script name.
+   This should permit multiple instances of the script to share a domain without
+   having to share the same sessions directory.
+ - HTML color names (legal and broken) are now converted back to the name from the
+   hex code when displaying the posting form.  In the event of multiple possible
+   names ("grey" vs "gray"), the first name sorted alphabetically is picked, even
+   if the user selected the other.
+ - COPPA age is now configurable.  Set to zero to disable the COPPA check.  When
+   disabled, the intro page instead reminds the users to read the rules.  The
+   click-thru effect and URL are identical to the "over age" COPPA link, so Bots
+   and Proxies should still continue to work.
+
+Version: 4.9.1
+Date: March 30, 2009
+ - CSS PHP file split into three different versions for the three default color schemes
+ - Lameness filter can now be disabled in configuration
+ - Missing configuration values are now given default values
+ - Added over five hundred "invalid" named HTML colors, such as "indianred1" to the color
+   translation list.
+
 Version: 4.9.0
 Codename: Diaspora
 Date: March 28, 2009
@@ -9,19 +31,14 @@ Date: March 28, 2009
  - CSS PHP file now emits proper caching headers to help reduce the "white flash" effect
  - All Javascript rewritten to take advantage of jQuery 1.3
  - [monger] markup code removed
- - Invalid HTML colors (i.e. "crap", "radioactive") are now transformed into legal hex colors using 
+ - Invalid HTML colors (i.e. "crap", "radioactive") are now transformed into legal hex colors using
    the pre-Mozilla Netscape formula.  Viewers should now always see the same color, regardless of
-   browser.  The classic Netscape colors have been added to a translation list, so colors such as 
+   browser.  The classic Netscape colors have been added to a translation list, so colors such as
    "aliceblue" will continue to work.
-Version: 4.9.1
-Date: March 30, 2009
- - CSS PHP file split into three different versions for the three default color schemes
- - Lameness filter can now be disabled in configuration
- - Missing configuration values are now given default values
- - Added over five hundred "invalid" named HTML colors, such as "indianred1" to the color 
-   translation list.  
+
 
 ---- Older Versions ----
+
 
 Version: 4.8
 Codename: Far and Wide
@@ -53,6 +70,7 @@ Date: Late Summer, 2002
    previous behavior was to hide the lifted or expired ban entirely.)
  - Guard logs added.  All messages to chat are now recorded, along with the poster's IP address,
    so Guards may review previous conversations.
+
 
 Version: 4.1
 Codename: Maquis
