@@ -1,7 +1,7 @@
 Natter Changelog
 
 Version: 4.9.2
-Date: April 8, 2009
+Date: April 9, 2009
  - Cookie prefix is now seperate from script name, but defaults to the old script name.
    This should permit multiple instances of the script to share a domain without
    having to share the same sessions directory.
@@ -15,6 +15,9 @@ Date: April 8, 2009
    and Proxies should still continue to work.
  - Added configuration option to check the X-Forwarded-For HTTP header.
  - Added Http:BL support from Project Honeypot.  To enable, enter your API key in the config.
+ - Added possible URL redirect upon kick/ban
+ - Added checking for a local CSS file (local_style.css) to be included in the
+   style output, which should make local customization easier.
 
 Version: 4.9.1
 Date: March 30, 2009

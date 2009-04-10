@@ -56,6 +56,12 @@ our $VERSION_TAG = '"Diaspora"';
 	# very well when there are multiple instances of the scripts installed.
 	# No, using cookie domains or paths isn't a better solution ... for now.
 		$config->{CookiePrefix} ||= $config->{Script};
+	# Don't look for proxies by default
+		$config->{CheckProxyForward} ||= 0;
+	# Don't do HttpBL lookups by default
+		$config->{HttpBLAPIKey}	||= '',
+	# Don't redirect banned users by default
+		$config->{BannedRedirect} ||= '',
 		return $config;
 	} # end getConfigPlusDefaults
 
@@ -347,10 +353,11 @@ FORMBODY
 
 # Complain that the user has been kicked or banned
 	sub noEntry_KickBan {
+		&printHeader('Location: ' . $config->{BannedRedirect}) if $config->{BannedRedirect};
 		&standardHTML({
 			header => "Kicked or Banned",
 			body => "Sorry, you have been kicked or banned from this chat room for $_[0] minutes.<br />The reason for this kick or ban is: $_[1].",
-			footer => "",
+			footer => ($config->{BannedRedirect} ? qq~<script type="text/javascript">location.href='$config->{BannedRedirect}';</script>~ : ''),
 		});
 		&Exit();
 	} # end noEntry_KickBan

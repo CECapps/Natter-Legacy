@@ -228,6 +228,10 @@
 
 THESTYLESHEET;
 
+// Look for a local stylesheet
+	if(file_exists('local_style.css'))
+		$css .= file_get_contents('local_style.css');
+
 // Tack on our last-modified date
 	$last_modified_date = getlastmod();
 	$css = '/* Last Modified '

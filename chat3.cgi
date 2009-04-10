@@ -468,7 +468,7 @@ COPPA_CHECK
 $javascript
 <form action="$config->{ScriptName}" method="post" name="frm" id="frm">
 <input type="hidden" name="action" value="post">
-	<table width="800" cellpadding="0" cellspacing="0" align="center">
+	<table width="800" cellpadding="0" cellspacing="0" align="center" id="postformtable">
 		<tr>
 			<td width="140" align="left">
 				<hr width="85%" />

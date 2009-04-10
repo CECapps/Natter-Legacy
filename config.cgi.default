@@ -43,6 +43,7 @@ sub getConfig {
 		CookiePrefix	=> 'chat',
 		CheckProxyForward => 1,
 		HttpBLAPIKey	=> '',
+		BannedRedirect	=> '',
 	};
 
 # Options based on configurations.  Don't touch this.
