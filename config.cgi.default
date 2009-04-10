@@ -41,6 +41,8 @@ sub getConfig {
 		ChatName		=> q!CHAT NAME GOES HERE!,
 		COPPAAge		=> 13,
 		CookiePrefix	=> 'chat',
+		CheckProxyForward => 1,
+		HttpBLAPIKey	=> '',
 	};
 
 # Options based on configurations.  Don't touch this.

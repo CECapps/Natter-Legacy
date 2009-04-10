@@ -13,6 +13,7 @@ Date: April 8, 2009
    disabled, the intro page instead reminds the users to read the rules.  The
    click-thru effect and URL are identical to the "over age" COPPA link, so Bots
    and Proxies should still continue to work.
+ - Added configuration option to check the X-Forwarded-For HTTP header.
  - Added Http:BL support from Project Honeypot.  To enable, enter your API key in the config.
 
 Version: 4.9.1
