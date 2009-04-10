@@ -16,6 +16,7 @@
 
 use Fcntl qw(:flock);
 use DateTime;
+use Socket;
 
 # CAUTION: Spaghetti code ahead.
 our $VERSION = '4.9.2';
@@ -57,6 +58,45 @@ our $VERSION_TAG = '"Diaspora"';
 		$config->{CookiePrefix} ||= $config->{Script};
 		return $config;
 	} # end getConfigPlusDefaults
+
+# Attempt to determine if the user is coming from a threatening IP address
+	sub checkIPThreat {
+		return unless $config->{HttpBLAPIKey};
+		my $proxy_ip_threat = getHTTPBLThreat($ENV{REMOTE_ADDR});
+		my $detected_ip_threat = getHTTPBLThreat(currentIP());
+		my $threat = $proxy_ip_threat || $detected_ip_threat;
+		return $threat;
+	} # end checkIPThreat
+
+# Determine if an IP is threatening under the Http:BL
+	sub getHTTPBLThreat {
+		my $proxy_ip = shift;
+		return unless $config->{HttpBLAPIKey};
+		my $proxy_lookup_addr = $config->{HttpBLAPIKey}
+			. '.'
+			. join('.', reverse split /\./, $proxy_ip)
+			. '.dnsbl.httpbl.org';
+		my @proxy_lookup = gethostbyname($proxy_lookup_addr);
+		$threatening = 0;
+		if(scalar @proxy_lookup) {
+			my ($n, $a, $t, $l, @addresses) = @proxy_lookup;
+			if(scalar @addresses) {
+				@addresses = grep /^127\./, map { inet_ntoa($_) } @addresses;
+				foreach my $address (@addresses) {
+					my($j, $stale, $threat, $type) = split /\./, $address;
+				# We'll let old threats in that aren't severe
+					next if $stale > 180 && $threat < 25;
+				# We'll let minor threats in
+					next if $threat < 10;
+				# We'll let unclassified threats in, as long as they aren't bad
+					next if !$type && $threat < 25;
+				# Yeeeup, it's a threat
+					$threatening = 1;
+				} # end foreach
+			} # end if
+		} # end if
+		return $threatening;
+	} # end sub
 
 # Open a file and Perl-eval its contents.
 	sub evalFile {
@@ -219,7 +259,7 @@ STANDARDhtml
 						-value   => ["", ],
 					));
 			} else {
-				&noEntry_KickBan(int(($bannage[0] - time()) / 60));
+				&noEntry_KickBan(int(($bannage[0] - time()) / 60), 'already provided');
 				&Exit;
 			} # end if
 		} # end if
@@ -309,7 +349,7 @@ FORMBODY
 	sub noEntry_KickBan {
 		&standardHTML({
 			header => "Kicked or Banned",
-			body => "Sorry, you have been kicked or banned from this chat room.  You may enter again in $_[0] minutes.",
+			body => "Sorry, you have been kicked or banned from this chat room for $_[0] minutes.<br />The reason for this kick or ban is: $_[1].",
 			footer => "",
 		});
 		&Exit();
@@ -358,7 +398,9 @@ FORMBODY
 # Determine if a user is kicked or banned.  If so, the user is notified
 	sub decideBannage {
 		$sessions->comp_to_banned(&currentIP);
-		my $bannage = $sessions->this_banned();
+		$sessions->comp_to_blacklist($ENV{REMOTE_ADDR});
+		$sessions->comp_to_blacklist(&currentIP);
+		my($bannage, $reason) = $sessions->this_banned();
 		if($bannage) {
 			&printCookie(cookie(
 				-name => "$config->{CookiePrefix}_b4nn4g3",
@@ -366,7 +408,7 @@ FORMBODY
 				-expires => '+1y'
 			));
 		# Cookies use time(), etc, etc, etc.  This is just a seconds countdown.
-			&noEntry_KickBan(sprintf("%d", ($bannage - time()) / 60) + 1);
+			&noEntry_KickBan(sprintf("%d", ($bannage - time()) / 60) + 1, $reason);
 			&Exit;
 		} # end if
 	} # end sub

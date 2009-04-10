@@ -192,11 +192,29 @@ sub comp_to_banned {
 } # end comp_to_banned
 
 
+sub comp_to_blacklist {
+	my $self = shift;
+	my $ip = shift;
+	return if defined $self->{THIS}->{'THREAT_' . $ip};
+	my $threat = &main::checkIPThreat($ip);
+	$self->{THIS}->{'THREAT_' . $ip} = 1;
+	if($threat) {
+		$self->{THIS}->{KICKBAN} = {
+			TIME => time() + 60 * 60 * 24,
+			BY => 'Blacklist',
+			FOR => 'IP Address Detected in DNSRBLs'
+		};
+	} # end if
+	#print CGI::header();
+	#print "comp_to_blacklist";
+} # end comp_to_blacklist
+
+
 # Return the end ban time, or undef
 sub this_banned {
 	my $self = shift;
 	if($self->{THIS}->{KICKBAN}->{TIME} > time()) {
-		return $self->{THIS}->{KICKBAN}->{TIME};
+		return ($self->{THIS}->{KICKBAN}->{TIME}, $self->{THIS}->{KICKBAN}->{FOR});
 	} else {
 		return undef;
 	} # end if

@@ -28,7 +28,6 @@ package SessionManager;
 		my $options = {
 			'path' => shift(@_) . '/session_list.cgi',
 			'sessions' => {},
-			'banManager' => undef,
 		};
 		my $self = bless($options, $class);
 		$SessionManager::instance = \$self;
@@ -101,7 +100,11 @@ package BanManager;
 		my $class = shift;
 		my $options = {
 			'path' => shift(@_) . '/ban_list.cgi',
-			'bans' => {}
+			'bans' => {
+				'ban_id' => 1,
+				'session_bans' => {},
+				'ip_bans' => {},
+			}
 		};
 		my $self = bless($options, $class);
 		$BanManager::instance = \$self;
@@ -122,7 +125,7 @@ package BanManager;
 		if(!-f $self->{path}) {
 		# Note that this will cause a fatal error if the path does not exist or is not
 		# writable.  Permissions and paths are a pain.
-			lock_store({}, $self->{path});
+			lock_store($self->{bans}, $self->{path});
 		} # end if
 	# Pull our ban index off disk
 		$self->{bans} = lock_retrieve($self->{path});

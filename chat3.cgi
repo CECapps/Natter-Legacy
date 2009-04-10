@@ -640,7 +640,7 @@ WHOSITS
 # Determine the current IP address of the remote user.  Trust X-Forwarded-For.
 	sub currentIP {
 		my $ip = $ENV{REMOTE_ADDR};
-		if($ip eq "127.0.0.1") {
+		if($config->{CheckProxyForward}) {
 			if(exists $ENV{HTTP_X_FORWARDED_FOR}) {
 				if($ENV{HTTP_X_FORWARDED_FOR} ne "127.0.0.1") {
 					$ip = $ENV{HTTP_X_FORWARDED_FOR};
