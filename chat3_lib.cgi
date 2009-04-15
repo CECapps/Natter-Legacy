@@ -364,6 +364,7 @@ FORMBODY
 
 # Check to see if the user has the password cookie
 	sub checkPassword {
+		return if !$config->{ChatPassword};
 		my @cookie = cookie("$config->{CookiePrefix}_password");
 		my $hex = Digest::MD5::md5_hex($config->{ChatPassword});
 		&noEntry_MissingPassword if($cookie[0] ne $hex);
