@@ -25,6 +25,7 @@ use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
 use SessionKeeper;
+use Digest::MD5;
 require "chat3_lib.cgi";
 
 # All errors are handled by the standardHTML routine, courtesy CGI::Carp
@@ -53,7 +54,7 @@ require "chat3_lib.cgi";
 
 # No bogus actions, please
 	if((!exists $in{action}) || ($in{action} eq "")) {
-		$in{action} = "intro";
+		$in{action} = $config->{ChatPassword} ? 'password_prompt' : 'intro';
 	} # end if
 
 # Set up a list of valid subroutines that the outside world can get to...
@@ -61,6 +62,8 @@ require "chat3_lib.cgi";
 		intro => \&action_intro,
 		coppa => \&action_coppa,
 		post => \&action_post,
+		password_prompt => \&action_password_prompt,
+		password_check => \&action_password_check,
 	);
 
 # ... then do the right one.
@@ -85,10 +88,79 @@ require "chat3_lib.cgi";
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # action_ subroutines
 
+# If passwords are enabled, prompt the user to enter one
+	sub action_password_prompt {
+	# No sanity cookie needed
+		my $dbh = getDBHandle();
+		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
+		my $tries = $record->[0];
+		my $last_try = $record->[1];
+	# Reset their tries after half an hour
+		my $now = time();
+		$tries = 0 if($last_try < $now - (60 * 30));
+	# Too many tries?  No entry for you.
+		&noEntry_TooManyTries() if($tries >= $config->{PasswordAttempts});
+	# How many tries are left?
+		my $tries_left = $config->{PasswordAttempts} - $tries;
+		my $tries_wording = $tries_left == $config->{PasswordAttempts} ? '' : "You have <b>$tries_left</b> tries remaining.";
+	# Prompt the user.
+		&standardHTML({
+			header => "Welcome to $config->{ChatName}",
+			body => <<PASSWORD_PROMPT
+<script type="text/javascript">
+\$().ready(function(){ \$('#frm').show(); \$('#js').hide(); });
+</script>
+This chat is now password protected.  $tries_wording Please enter the password:
+<br /><br />
+<form action="$config->{ScriptName}" method="post" name="frm" id="frm" style="display: none">
+<input type="hidden" name="action" value="password_check">
+	<input type="text" size="10" name="password" id="password" class="textbox" />
+	<input type="submit" value="Check Password" class="button" />
+</form>
+<div id="js">If you do not see a password prompt, please enable Javascript in your browser.</div>
+PASSWORD_PROMPT
+			,
+			footer => '',
+		});
+	} # end action_password_prompt
+
+# If passwords are enabled and the user provided one, check it
+	sub action_password_check {
+	# No sanity cookie needed.
+		my $dbh = getDBHandle();
+		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
+		my $tries = $record->[0];
+		my $last_try = $record->[1];
+		my $now = time();
+	# Is this their first try?
+		if(!$tries) {
+			$dbh->do('INSERT OR IGNORE INTO floodcheck(tries, last_try, ip) VALUES(0, ?, ?)', undef, $now, &currentIP());
+		} # end if
+		&noEntry_TooManyTries() if($tries > $config->{PasswordAttempts});
+	# Did they enter the proper password?  If so, intro'em.
+		if($tries <= $config->{PasswordAttempts} && $in{'password'} eq $config->{ChatPassword}) {
+			&printCookie(cookie(
+					-name    => "$config->{CookiePrefix}_password",
+					-value   => [Digest::MD5::md5_hex($config->{ChatPassword}), ]
+				));
+			return &action_intro(1);
+		} # end if
+	# It must be a failure.
+		$dbh->do('UPDATE floodcheck SET tries = tries + 1, last_try = ? WHERE ip = ?', undef, $now, &currentIP());
+		&standardHTML({
+			header => 'Wrong Password',
+			body => qq~<br />Wrong password, no cookie!  <a href="$config->{ScriptName}?action=password_prompt">Try again?</a>~,
+			footer => '',
+		});
+	} # end action_password_check
+
 # Say hi to the user, ask them to indicate their age
 	sub action_intro {
+		my $skip_password_check = shift;
 	# Plant a cookie
 		&decideSanity;
+	# Check for the passwordy bits
+		&checkPassword unless $skip_password_check;
 	# If they've already done the age check, throw them at the post form.
 		if((cookie("$config->{CookiePrefix}_COPPA"))[0] eq "over") {
 			&printHeader("Location: $config->{ScriptName}?action=post\n");
@@ -129,6 +201,8 @@ COPPA_CHECK
 	# Check for the sanity cookie set in the intro.  If it's missing, they'll
 	# be given an error message.
 		&checkSanityCookie;
+	# Check for the passwordy bits
+		&checkPassword;
 	# If they forged the form, they're underage
 		my $this = ($in{check} =~ m/^(over|under)$/ ? $in{check} : "under" );
 	# Set a cookie with their decision.  This will last one hour, during whic
@@ -164,6 +238,8 @@ COPPA_CHECK
 		&decideSanity;
 	# Determine if the user has been banned
 		&decideBannage;
+	# Check for the passwordy bits
+		&checkPassword;
 	# If the user posted a message, add it
 		my $added_chat_message;
 		if(exists $in{'username'}) {

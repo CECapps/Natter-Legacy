@@ -84,7 +84,7 @@
 
 	.header { font-size: 175%; font-weight: bold; text-align: center; color: {$style['HRColor']}; }
 	.body { text-align: center; font-size: 100%; color: {$style['TextColor']}; font-family: Verdana, Helvetica, Arial, sans-serif; }
-	.footer { font-size: 125%; text-align: center; font-style: oblique }
+	.footer { font-size: 100%; text-align: center; font-style: oblique }
 	.copy { font-size: 10px; color: {$style['PoweredByColor']}; text-align: center }
 	.timeline { font-size: 10px; color: {$style['TimeColor']}; text-align: left }
 	.name { font-size: 125%; font-family: Times New Roman, Times Roman, Times, serif }

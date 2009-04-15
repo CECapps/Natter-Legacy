@@ -25,6 +25,7 @@ use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
 use Storable qw(retrieve);
 use SessionKeeper;
+use Digest::MD5;
 require "chat3_lib.cgi";
 
 # All errors are handled by the standardHTML routine, courtesy CGI::Carp

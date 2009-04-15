@@ -44,6 +44,8 @@ sub getConfig {
 		CheckProxyForward => 1,
 		HttpBLAPIKey	=> '',
 		BannedRedirect	=> '',
+		ChatPassword	=> '',
+		PasswordAttempts => 3,
 	};
 
 # Options based on configurations.  Don't touch this.
@@ -52,6 +54,7 @@ sub getConfig {
 	$z->{CSSFile} 		= 'style.php';
 	$z->{MessagesFN} 	= 'messages';
 	$z->{MessagesFX} 	= '.html';
+	$z->{DBFile}		= 'database/chat3.sqlite';
 	$z->{ScriptName} 		= $z->{CGIURL} 		. "/" . $z->{Script};
 	$z->{GuardScriptName} 	= $z->{CGIURL} 		. "/" . $z->{GuardScript};
 	$z->{MessagesFile} 		= $z->{NonCGIPath} 	. "/" . $z->{MessagesFN} . $z->{MessagesFX};

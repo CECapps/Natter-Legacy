@@ -17,9 +17,10 @@
 use Fcntl qw(:flock);
 use DateTime;
 use Socket;
+use Digest::MD5;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.9.2';
+our $VERSION = '4.9.3';
 our $VERSION_TAG = '"Diaspora"';
 
 
@@ -42,6 +43,22 @@ our $VERSION_TAG = '"Diaspora"';
 		return $dt;
 	} # end getTime
 
+# Fetch a handle to the local database
+	our $dbh;
+	sub getDBHandle {
+		return $dbh if defined $dbh;
+		use DBI;
+		my $dbfile = $config->{DBFile};
+		$dbh = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '', { RaiseError => 1 , AutoCommit => 1 }) || die "$! / $@ ($dbfile): $DBI::errstr";
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS floodcheck (
+				ip 			VARCHAR(15) PRIMARY KEY,
+				tries 		INT 		UNSIGNED,
+				last_try 	INT 		UNSIGNED
+			)
+		');
+		return $dbh;
+	} # end getDBHandle
 
 # Load the configuration, plus attempt to set defaults for things that have not
 # been configured.  This is due to the configuration file not being properly
@@ -62,6 +79,11 @@ our $VERSION_TAG = '"Diaspora"';
 		$config->{HttpBLAPIKey}	||= '',
 	# Don't redirect banned users by default
 		$config->{BannedRedirect} ||= '',
+	# The new database file has to have a name...
+		$config->{DBFile} ||= 'database/chat3.sqlite';
+	# No password.
+		$config->{ChatPassword} ||= '';
+		$config->{PasswordAttempts} ||= 3;
 		return $config;
 	} # end getConfigPlusDefaults
 
@@ -340,6 +362,37 @@ FORMBODY
 	} # end checkAuthCookie2
 
 
+# Check to see if the user has the password cookie
+	sub checkPassword {
+		my @cookie = cookie("$config->{CookiePrefix}_password");
+		my $hex = Digest::MD5::md5_hex($config->{ChatPassword});
+		&noEntry_MissingPassword if($cookie[0] ne $hex);
+		return;
+	} # end checkPassword
+
+
+# Complain that the user has tried the wrong password too many times.
+	sub noEntry_TooManyTries {
+		&standardHTML({
+			header => "Password Failure",
+			body => "You have failed at entering the password too many times.  Try again later.",
+			footer => "",
+		});
+		&Exit();
+	} # end noEntry_TooManyTries
+
+
+# Complain that the user's password cookie is missing
+	sub noEntry_MissingPassword {
+		&standardHTML({
+			header => "Missing Password",
+			body => "Your browser did not send the proper password.  You'll need to re-enter the chat, sorry.",
+			footer => "",
+		});
+		&Exit();
+	} # end noEntry_MissingPassword
+
+
 # Complain that the user's cookies are busted.
 	sub noEntry_Insane {
 		&standardHTML({
@@ -372,7 +425,7 @@ FORMBODY
 			));
 		&standardHTML({
 			header => "Sorry",
-			body => "Sorry, those under the age of 13 may not chat here.",
+			body => "Sorry, those under the age of $config->{COPPAAge} may not chat here.",
 			footer => "",
 		});
 		&Exit();
@@ -382,7 +435,7 @@ FORMBODY
 	sub noEntry_Funky {
 		&standardHTML({
 			header => "Error",
-			body => "I've been confused by something your web browser told me.  Perhaps your web browser is rejecting cookies, or your computer's clock is incorrect?",
+			body => "I've been confused by something your web browser told me.  Perhaps your web browser is rejecting cookies, or your computer's clock is incorrect?  You'll need to re-enter the chat.",
 			footer => "Please try your request again.",
 		});
 		&Exit();

@@ -1,5 +1,13 @@
 Natter Changelog
 
+Version: 4.9.3
+Date: April 15, 2009
+ - Password option added.  The code now uses DBI, DBD::SQLite, and Digest::MD5
+   The password is defined using the ChatPassword configuration setting.  Users
+   will get three tries to log in.  You may change this number by altering the
+   PasswordAttempts variable.  The password must be entered each time the user
+   enters the chat, even if they have the password cookie.
+
 Version: 4.9.2
 Date: April 9, 2009
  - Cookie prefix is now seperate from script name, but defaults to the old script name.
