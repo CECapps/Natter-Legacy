@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Natter 4.9
+# Natter 4.10
 # Copyright 1999-2009 Charles Capps
 #
 # This software is covered by a license agreement.
@@ -16,7 +16,7 @@
 
 # This is slightly more wtftastic than the main chat script.
 
-use lib(".");
+use lib('.', './ext');
 use strict;
 no strict("subs");	# :-P
 no strict("refs");	# :-P x2

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Natter 4.9
+# Natter 4.10
 # Copyright 1999-2009 Charles Capps
 #
 # This software is covered by a license agreement.
@@ -20,8 +20,8 @@ use Socket;
 use Digest::MD5;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.9.3';
-our $VERSION_TAG = '"Diaspora"';
+our $VERSION = '4.10.0';
+our $VERSION_TAG = '"Ingress"';
 
 
 # Create a "Powered By" HTML blub
@@ -57,6 +57,43 @@ our $VERSION_TAG = '"Diaspora"';
 				last_try 	INT 		UNSIGNED
 			)
 		');
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS sessions (
+				id		VARCHAR(32)	PRIMARY KEY,
+				ip		VARCHAR(15)	NOT NULL,
+				created	INT			NOT NULL,
+				updated	INT			NOT NULL,
+				kicked	INT			NULL DEFAULT "0",
+				data	TEXT		NULL
+			)
+		');
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS ip_bans (
+				id			INT			PRIMARY KEY, -- this is auto_increment
+				ip			VARCHAR(15)	NOT NULL,
+				created		INT			NOT NULL,
+				duration	INT			NOT NULL,
+				lifted		INT			NOT NULL,
+				created_by	VARCHAR(32)	NOT NULL,
+				lifted_by	VARCHAR(32)	NULL,
+				reason 		TEXT		NOT NULL
+			)
+		');
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS session_bans (
+				id			INT			PRIMARY KEY, -- this is auto_increment
+				session_id	VARCHAR(32),
+				created		INT			NOT NULL,
+				duration	INT			NOT NULL,
+				lifted		INT			NOT NULL,
+				created_by	VARCHAR(32)	NOT NULL,
+				lifted_by	VARCHAR(32)	NULL,
+				reason 		TEXT		NOT NULL
+			)
+		');
+		$dbh->do('
+			CREATE INDEX IF NOT EXISTS session_id ON session_bans(session_id)
+		');
 		return $dbh;
 	} # end getDBHandle
 
@@ -86,6 +123,22 @@ our $VERSION_TAG = '"Diaspora"';
 		$config->{PasswordAttempts} ||= 3;
 		return $config;
 	} # end getConfigPlusDefaults
+
+# Determine the current IP address of the remote user.  Trust X-Forwarded-For.
+	sub currentIP {
+		my $ip = $ENV{REMOTE_ADDR};
+		if($config->{CheckProxyForward}) {
+			if(exists $ENV{HTTP_X_FORWARDED_FOR}) {
+				if($ENV{HTTP_X_FORWARDED_FOR} ne "127.0.0.1") {
+					$ip = $ENV{HTTP_X_FORWARDED_FOR};
+				} # end if
+			} # end if
+		} # end if
+		if($ENV{HTTP_USER_AGENT} =~ m/RealIP=([\d\.]+)$/) {
+			return $1;
+		} # end if
+		return $ip;
+	} # end currentIP
 
 # Attempt to determine if the user is coming from a threatening IP address
 	sub checkIPThreat {

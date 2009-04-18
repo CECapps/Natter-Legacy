@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Natter 4.9
+# Natter 4.10
 # Copyright 1999-2009 Charles Capps
 #
 # This software is covered by a license agreement.
@@ -17,7 +17,7 @@
 # This code is unhealthy and was designed ten years ago.  I apologize for the
 # insanity.  Please forgive me?
 
-use lib(".");
+use lib('.', './ext');
 use strict;
 no strict("subs");	# :-P
 no strict("refs");	# :-P x2
@@ -711,23 +711,6 @@ WHOSITS
 		close($fh);
 	} # end updatePostlog
 
-
-
-# Determine the current IP address of the remote user.  Trust X-Forwarded-For.
-	sub currentIP {
-		my $ip = $ENV{REMOTE_ADDR};
-		if($config->{CheckProxyForward}) {
-			if(exists $ENV{HTTP_X_FORWARDED_FOR}) {
-				if($ENV{HTTP_X_FORWARDED_FOR} ne "127.0.0.1") {
-					$ip = $ENV{HTTP_X_FORWARDED_FOR};
-				} # end if
-			} # end if
-		} # end if
-		if($ENV{HTTP_USER_AGENT} =~ m/RealIP=([\d\.]+)$/) {
-			return $1;
-		} # end if
-		return $ip;
-	} # end currentIP
 
 # Cleanly exit.  Make sure to record session data.
 	sub Exit {

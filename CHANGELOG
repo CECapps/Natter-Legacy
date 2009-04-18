@@ -1,5 +1,25 @@
 Natter Changelog
 
+Version: 4.10.0
+Codename: Ingress
+Date: April 17, 2009
+ - Massively overhauled the session and ban system.  Sessions and bans now use
+   an SQLite database via DBI and DBD::SQLite.
+ - Bans will be migrated from the old Storable method after the first login to
+   the guard frame.  The old sessions directory can be deleted after migration.
+ - Sessions can not be migrated.  Users will be kicked from the chat during the
+   upgrade, and must reload the chat frameset.
+ - Session bans are now recorded and displayed on the ban list page.
+ - Session bans are now limited to no more than 12 hours.  Attempting to set a
+   longer ban on a session will cause it to be limited to 12 hours.
+ - The "sanity", "COPPA", "b4nn4g3", and "password" cookies are no longer used.
+   The single "session" cookie replaces them.  Bots and Proxies should not be
+   affected by this, unless they were looking directly for those cookie names.
+   If your Bot or Proxy was looking for those names, please refrain from looking
+   for the "session" cookie, as this is bad practice, and the "session" cookie
+   is unlikely to retain that exact name in the future.  The required procedure
+   to enter the chat as a Bot or Proxy is still identical.
+
 Version: 4.9.3
 Date: April 15, 2009
  - Password option added.  The code now uses DBI, DBD::SQLite, and Digest::MD5
