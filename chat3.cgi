@@ -24,7 +24,7 @@ no strict("refs");	# :-P x2
 use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
-use SessionKeeper;
+use Natter::Session;
 use Digest::MD5;
 require "chat3_lib.cgi";
 
@@ -36,7 +36,35 @@ require "chat3_lib.cgi";
 	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
 
 # Pull in the session manager
-	our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });
+	#our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });
+
+# Create a new Session
+	our $session = new Natter::Session();
+	my $session_id = cookie($config->{CookiePrefix} . '_session');
+	if(!$session_id) {
+	# If we didn't get a session cookie, create a new session for the user.
+		$session->create();
+		$session_id = $session->{id};
+		&printCookie(cookie(
+				-name    => $config->{CookiePrefix} . '_session',
+				-value   => [$session_id],
+			));
+	} else {
+	# Otherwise, we got a valid session id.  Try and load it up.
+		my $retrieved = $session->retrieve($session_id);
+	# Make sure the retrieve worked and the IP matches
+		if(!$retrieved || !$session->validate()) {
+		# The IP didn't match or the session is bogus.  This may be a cookie hijack.
+		# Clone the existing session data and try to recreate it.
+			$session->create() if !$retrieved;
+			$session->recreateId();
+			$session_id = $session->{id};
+			&printCookie(cookie(
+					-name    => $config->{CookiePrefix} . '_session',
+					-value   => [$session_id],
+				));
+		} # end if
+	} # end if
 
 # Engage the global file lock
 	our $LOCKFILE = &makeGlob;
@@ -47,10 +75,10 @@ require "chat3_lib.cgi";
 
 # This code was designed when the COPPA law was interpreted more striclty than
 # it was now.  The minimum entry age can be dictated in the config, or disabled.
-	&checkCOPPACookie;
+	&checkCOPPAToken;
 
 # Make sure user isn't banned or kicked
-	&checkKickBanCookie;
+	&checkKickBanToken;
 
 # No bogus actions, please
 	if((!exists $in{action}) || ($in{action} eq "")) {
@@ -90,7 +118,7 @@ require "chat3_lib.cgi";
 
 # If passwords are enabled, prompt the user to enter one
 	sub action_password_prompt {
-	# No sanity cookie needed
+	# No sanity flag needed
 		my $dbh = getDBHandle();
 		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
 		my $tries = $record->[0];
@@ -126,7 +154,7 @@ PASSWORD_PROMPT
 
 # If passwords are enabled and the user provided one, check it
 	sub action_password_check {
-	# No sanity cookie needed.
+	# No sanity flag needed.
 		my $dbh = getDBHandle();
 		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
 		my $tries = $record->[0];
@@ -139,11 +167,8 @@ PASSWORD_PROMPT
 		&noEntry_TooManyTries() if($tries > $config->{PasswordAttempts});
 	# Did they enter the proper password?  If so, intro'em.
 		if($tries <= $config->{PasswordAttempts} && $in{'password'} eq $config->{ChatPassword}) {
-			&printCookie(cookie(
-					-name    => "$config->{CookiePrefix}_password",
-					-value   => [Digest::MD5::md5_hex($config->{ChatPassword}), ]
-				));
-			return &action_intro(1);
+			$session->{data}->{password} = $config->{ChatPassword};
+			return &action_intro();
 		} # end if
 	# It must be a failure.
 		$dbh->do('UPDATE floodcheck SET tries = tries + 1, last_try = ? WHERE ip = ?', undef, $now, &currentIP());
@@ -156,13 +181,12 @@ PASSWORD_PROMPT
 
 # Say hi to the user, ask them to indicate their age
 	sub action_intro {
-		my $skip_password_check = shift;
-	# Plant a cookie
-		&decideSanity;
+	# Set a sanity token for later checking.
+		$session->{data}->{sanity} = 1;
 	# Check for the passwordy bits
-		&checkPassword unless $skip_password_check;
+		&checkPassword;
 	# If they've already done the age check, throw them at the post form.
-		if((cookie("$config->{CookiePrefix}_COPPA"))[0] eq "over") {
+		if($session->{data}->{COPPA} eq 'over') {
 			&printHeader("Location: $config->{ScriptName}?action=post\n");
 		} # end if
 	# Produce the form
@@ -198,31 +222,21 @@ COPPA_CHECK
 
 # Make sure the user is the correct age for the chat
 	sub action_coppa {
-	# Check for the sanity cookie set in the intro.  If it's missing, they'll
-	# be given an error message.
-		&checkSanityCookie;
+	# Check for the sanity session flag
+		&checkSanityToken;
 	# Check for the passwordy bits
 		&checkPassword;
 	# If they forged the form, they're underage
 		my $this = ($in{check} =~ m/^(over|under)$/ ? $in{check} : "under" );
-	# Set a cookie with their decision.  This will last one hour, during whic
-	# they can come back to the chat without being prompted to re-enter their age.
-		&printCookie(cookie(
-				-name    => "$config->{CookiePrefix}_COPPA",
-				-value   => [$this, ],
-				-expires => '+1h'
-			));
 	# If they're underage, kick'em out.
 		if($this eq "under") {
-			&standardHTML({
-				header => "Sorry",
-				body => "We do not permit those under $config->{COPPAAge} years of age to chat here.",
-				footer => "",
-			});
+			$session->{data}->{COPPA} = 'under';
+			noEntry_COPPA();
 			&Exit();
 		}
 	# Otherwise they get to notify everyone that they've entered the chat
 		else {
+			$session->{data}->{COPPA} = 'over';
 			&printHeader(qq(Location: $config->{ScriptName}?action=post;special=entrance\n));
 			&Exit();
 		} # end if
@@ -232,10 +246,8 @@ COPPA_CHECK
 
 # Post a new message / retrieve the posting form
 	sub action_post {
-	# Make sure they have the intro cookie
-		&checkSanityCookie;
-	# Reset the intro cookie (for COPPA'd users that close their browsers)
-		&decideSanity;
+	# Make sure they went through the intro and are accepting cookies
+		&checkSanityToken;
 	# Determine if the user has been banned
 		&decideBannage;
 	# Check for the passwordy bits
@@ -250,7 +262,7 @@ COPPA_CHECK
 			&updateLog($log_line);
 		} # end if
 	# If the user should post a entrance line, add it now
-		if(!$added_chat_message && $in{special} eq "entrance") {
+		if(!$added_chat_message && defined $in{special} && $in{special} eq "entrance") {
 			my $log_line = &updateMessages;
 			$added_chat_message = $log_line ? 1 : 0;
 			&updateLog($log_line);
@@ -594,7 +606,7 @@ WHOSITS
 # Update the chat messages file
 	sub updateMessages {
 	# Don't actually update anything if it's just a name change
-		return undef if($in{name_change} eq "true");
+		return undef if(defined $in{name_change} && $in{name_change} eq "true");
 		my $raw = CGI::unescapeHTML($in{'message'});
 	# Yoink out nasty crap and emptyness.
 		$raw =~ s!<[^<]+>!!gi;
@@ -629,7 +641,7 @@ WHOSITS
 		$newline .= qq( <span class="themessage"><font color="$msgcolor">$message</font></span> </div>);
 
 	# If this is a special user entrance, post that instead.
-		if(($in{special} eq "entrance") && (!&checkAuthCookie2)) {
+		if((defined $in{special} && $in{special} eq "entrance") && (!&checkAuthCookie2)) {
 			$newline = qq~<div class="messageline welcome"> <span class="themessage"><span class="star">*</span> A user has entered the chat.</font></span> <span class="thetime"> ($timebit) </span> </div>~;
 		} # end if
 
@@ -689,7 +701,7 @@ WHOSITS
 		my $msgcolor = ( $in{'mcolor'} ne "Message Color" ? $in{'mcolor'} : $namecolor );
 		$msgcolor = $namecolor unless $msgcolor;
 	# Which user are we?
-		my $sesid = $sessions->current_id;
+		my $sesid = $session->{id}; # $sessions->current_id;
 		my $ip = &currentIP;
 
 	# time() -> UTC, so it's OK here
@@ -716,6 +728,7 @@ WHOSITS
 	sub Exit {
 		#use Data::Dumper;
 		#print pre(&Dumper($sessions->record()));
-		$sessions->record();
+		#$sessions->record();
+		$session->markActive();
 		exit(0);
 	} # end Exit

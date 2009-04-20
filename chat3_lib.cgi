@@ -43,6 +43,7 @@ our $VERSION_TAG = '"Ingress"';
 		return $dt;
 	} # end getTime
 
+
 # Fetch a handle to the local database
 	our $dbh;
 	sub getDBHandle {
@@ -50,6 +51,46 @@ our $VERSION_TAG = '"Ingress"';
 		use DBI;
 		my $dbfile = $config->{DBFile};
 		$dbh = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '', { RaiseError => 1 , AutoCommit => 1 }) || die "$! / $@ ($dbfile): $DBI::errstr";
+		#$dbh->trace(2);
+		&upgradeDatabase();
+		return $dbh;
+	} # end getDBHandle
+
+
+# Upgrade the SQLite database
+	sub upgradeDatabase {
+	# Creation first.  These table definitions should not be changed once in
+	# production.  Any future changes should be through alters, to be taken care
+	# of by this subroutine and what it calls.
+		&createTables();
+	# Now, what's our database version?
+		my $version = $dbh->selectrow_array('SELECT MAX(version) FROM db_version LIMIT 1');
+	# If the database is unversioned, it's version 1.  This won't happen in production.
+		if(!$version) {
+			$version = 1;
+			$dbh->do('INSERT INTO db_version(version) VALUES(1)');
+		} # end if
+	# Create a list of possible database versions, and their corresponding
+	# alter table subroutines.
+		my $version_upgrade = {
+			1 => \&upgradeDatabase_Version1,
+		};
+	# Go through the list, skipping upgrades that aren't needed.
+		foreach my $upgrade_version (sort { $a <=> $b } keys %$version_upgrade) {
+			next if($upgrade_version < $version);
+			$version_upgrade->{$upgrade_version}->();
+			$dbh->do('INSERT INTO db_version(version) VALUES(?)', undef, $upgrade_version);
+		} # end foreach
+	} # end upgradeDatabase
+
+
+# Dummy sub for the DB version 1 upgrade.
+	sub upgradeDatabase_Version1 {
+	} # end upgradeDatabase_Version1
+
+
+# Create tables in the SQLite database
+	sub createTables {
 		$dbh->do('
 			CREATE TABLE IF NOT EXISTS floodcheck (
 				ip 			VARCHAR(15) PRIMARY KEY,
@@ -67,35 +108,56 @@ our $VERSION_TAG = '"Ingress"';
 				data	TEXT		NULL
 			)
 		');
+	# The right way to do these tables would be to create three -- a table for
+	# the ban info (reason, created, lifted, etc), then two others for IPs or
+	# sessions.  Unfortunately I'm lazy, and this should work anyway.
 		$dbh->do('
 			CREATE TABLE IF NOT EXISTS ip_bans (
 				id			INT			PRIMARY KEY, -- this is auto_increment
 				ip			VARCHAR(15)	NOT NULL,
+				reason 		TEXT		NOT NULL,
 				created		INT			NOT NULL,
 				duration	INT			NOT NULL,
 				lifted		INT			NOT NULL,
+				cleared		INT			NULL,
 				created_by	VARCHAR(32)	NOT NULL,
 				lifted_by	VARCHAR(32)	NULL,
-				reason 		TEXT		NOT NULL
+				cleared_by	VARCHAR(32)	NULL
 			)
 		');
+		$dbh->do('
+			CREATE INDEX IF NOT EXISTS ip_address ON ip_bans(ip)
+		');
+
 		$dbh->do('
 			CREATE TABLE IF NOT EXISTS session_bans (
 				id			INT			PRIMARY KEY, -- this is auto_increment
 				session_id	VARCHAR(32),
+				reason 		TEXT		NOT NULL,
 				created		INT			NOT NULL,
 				duration	INT			NOT NULL,
 				lifted		INT			NOT NULL,
-				created_by	VARCHAR(32)	NOT NULL,
+				cleared		INT			NULL,
 				lifted_by	VARCHAR(32)	NULL,
-				reason 		TEXT		NOT NULL
+				created_by	VARCHAR(32)	NOT NULL,
+				cleared_by	VARCHAR(32)	NULL
 			)
 		');
 		$dbh->do('
 			CREATE INDEX IF NOT EXISTS session_id ON session_bans(session_id)
 		');
-		return $dbh;
-	} # end getDBHandle
+
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS db_version (
+				version		INT		NOT NULL
+			)
+		');
+		$dbh->do('
+			CREATE INDEX IF NOT EXISTS version ON db_version(version)
+		');
+
+	} # end createTables
+
 
 # Load the configuration, plus attempt to set defaults for things that have not
 # been configured.  This is due to the configuration file not being properly
@@ -124,6 +186,7 @@ our $VERSION_TAG = '"Ingress"';
 		return $config;
 	} # end getConfigPlusDefaults
 
+
 # Determine the current IP address of the remote user.  Trust X-Forwarded-For.
 	sub currentIP {
 		my $ip = $ENV{REMOTE_ADDR};
@@ -140,6 +203,7 @@ our $VERSION_TAG = '"Ingress"';
 		return $ip;
 	} # end currentIP
 
+
 # Attempt to determine if the user is coming from a threatening IP address
 	sub checkIPThreat {
 		return unless $config->{HttpBLAPIKey};
@@ -148,6 +212,7 @@ our $VERSION_TAG = '"Ingress"';
 		my $threat = $proxy_ip_threat || $detected_ip_threat;
 		return $threat;
 	} # end checkIPThreat
+
 
 # Determine if an IP is threatening under the Http:BL
 	sub getHTTPBLThreat {
@@ -178,6 +243,7 @@ our $VERSION_TAG = '"Ingress"';
 		} # end if
 		return $threatening;
 	} # end sub
+
 
 # Open a file and Perl-eval its contents.
 	sub evalFile {
@@ -308,54 +374,33 @@ STANDARDhtml
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # Sanity checking subroutines
 
-# If the user has a COPPA cookie, pass them.
-# If there's no cookie, bail
-# If there's an underage cookie, complain.
-	sub checkCOPPACookie {
+# Make sure the user didn't fail the COPPA check.
+	sub checkCOPPAToken {
 	# But don't check if COPPA checking is disabled
 		return if(!$config->{COPPAAge});
-	# Did the user already submit the cookie?
-		my @coppa = cookie("$config->{CookiePrefix}_COPPA");
-		if($coppa[0]) {
-			if($coppa[0] eq "under") {
-				&noEntry_COPPA;
-			} elsif($coppa[0] eq "over") {
-				return;
-			} else {
-				&noEntry_Funky(@coppa);
-			} # end if
-		} # end if
-		return;
-	} # end checkCOPPACookie
+		my $coppa = $session->{data}->{COPPA};
+	# If the user hasn't been prompted, skip the check.
+		return if(!$coppa);
+	# If the user has passed the check, skip
+		return if($coppa eq "over");
+	# If the user is underage, bail.
+		noEntry_COPPA() if($coppa eq "under");
+	} # end checkCOPPAToken
 
 
 # Check to see if the user has been banned.
-	sub checkKickBanCookie {
-		my @bannage = cookie("$config->{CookiePrefix}_b4nn4g3");
-		if(@bannage) {
-		# Cookies will always use unmodified time(), which provides UTC seconds
-			if($bannage[0] < time()) {
-				&printCookie(cookie(
-						-name    => "$config->{CookiePrefix}_b4nn4g3",
-						-value   => ["", ],
-					));
-			} else {
-				&noEntry_KickBan(int(($bannage[0] - time()) / 60), 'already provided');
-				&Exit;
-			} # end if
-		} # end if
-
-		return undef;
-	} # end checkKickBanCookie
+	sub checkKickBanToken {
+		my $is_banned = $session->isBanned();
+		return if(!$is_banned);
+		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
+	} # end checkKickBanToken
 
 
-# Check to see if our normal cookie is present. If not, bail.
-	sub checkSanityCookie {
-		my @sanity = cookie("$config->{CookiePrefix}_sanity");
-		unless(($sanity[0] eq "keeper") && ($sessions->is_valid($sanity[1]))) {
-			&noEntry_Insane;
-		} # end unless
-	} # end checkSanityCookie
+# Check that the session we're processing has gone through the intro process,
+# i.e. that the user is accepting cookies.
+	sub checkSanityToken {
+		noEntry_Insane unless $session->{data}->{sanity} == 1;
+	} # end checkSanityToken
 
 
 # Check to see if the guard script cookie is present.  If not, prompt the user to log in.
@@ -415,12 +460,10 @@ FORMBODY
 	} # end checkAuthCookie2
 
 
-# Check to see if the user has the password cookie
+# Check to see if the user has the password token
 	sub checkPassword {
 		return if !$config->{ChatPassword};
-		my @cookie = cookie("$config->{CookiePrefix}_password");
-		my $hex = Digest::MD5::md5_hex($config->{ChatPassword});
-		&noEntry_MissingPassword if($cookie[0] ne $hex);
+		noEntry_MissingPassword if($session->{data}->{password} ne $config->{ChatPassword});
 		return;
 	} # end checkPassword
 
@@ -436,7 +479,7 @@ FORMBODY
 	} # end noEntry_TooManyTries
 
 
-# Complain that the user's password cookie is missing
+# Complain that the user's password token is missing
 	sub noEntry_MissingPassword {
 		&standardHTML({
 			header => "Missing Password",
@@ -472,11 +515,6 @@ FORMBODY
 
 # Complain that the user is underage.
 	sub noEntry_COPPA {
-		&printCookie(cookie(
-				-name    => "$config->{CookiePrefix}_COPPA",
-				-value   => ["under", ],
-				-expires => '+1h'
-			));
 		&standardHTML({
 			header => "Sorry",
 			body => "Sorry, those under the age of $config->{COPPAAge} may not chat here.",
@@ -485,46 +523,12 @@ FORMBODY
 		&Exit();
 	} # end noEntry_COPPA
 
-# Complain about bad cookie wtfery
-	sub noEntry_Funky {
-		&standardHTML({
-			header => "Error",
-			body => "I've been confused by something your web browser told me.  Perhaps your web browser is rejecting cookies, or your computer's clock is incorrect?  You'll need to re-enter the chat.",
-			footer => "Please try your request again.",
-		});
-		&Exit();
-	} # end noEntry_Funky
-
-
-# Try to set a cookie to ensure the client supports cookies
-	sub decideSanity {
-		my @sanity = cookie("$config->{CookiePrefix}_sanity");
-		my $sanein = ($sessions->load_if_valid($sanity[1]) ? $sanity[1] : $sessions->make_new() );
-		if($sanein ne $sanity[1]) {
-			&printCookie(cookie(
-				-name => "$config->{CookiePrefix}_sanity",
-				-value => ["keeper", $sanein],
-			));
-		} # end if
-	} # end sub
-
 
 # Determine if a user is kicked or banned.  If so, the user is notified
 	sub decideBannage {
-		$sessions->comp_to_banned(&currentIP);
-		$sessions->comp_to_blacklist($ENV{REMOTE_ADDR});
-		$sessions->comp_to_blacklist(&currentIP);
-		my($bannage, $reason) = $sessions->this_banned();
-		if($bannage) {
-			&printCookie(cookie(
-				-name => "$config->{CookiePrefix}_b4nn4g3",
-				-value => [$bannage],
-				-expires => '+1y'
-			));
-		# Cookies use time(), etc, etc, etc.  This is just a seconds countdown.
-			&noEntry_KickBan(sprintf("%d", ($bannage - time()) / 60) + 1, $reason);
-			&Exit;
-		} # end if
+		my $is_banned = $session->isBanned();
+		return if(!$is_banned);
+		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
 	} # end sub
 
 

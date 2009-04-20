@@ -14,12 +14,13 @@
 #
 # Questions?  Comments?  <capps@solareclipse.net>
 
-package Session;
-	use lib './ext';
+package Natter::Session;
+	use lib '../ext', '..';
 	use strict;
 	use warnings;
 	use Digest::MD5;
 	use JSON::PP;
+	use Natter::BanManager;
 
 # Create and return a new object
 	sub new {
@@ -36,19 +37,27 @@ package Session;
 # Create a new, clean session
 	sub create {
 		my $self = shift;
-		$self->{id} = Digest::MD5::md5_hex(rand(1000000) . rand(10000) . rand(100) . rand(2) . scalar localtime()  . $$);
 		$self->{ip} = main::currentIP();
 		$self->{created} = time();
 		$self->{updated} = time();
 		$self->{kicked} = 0;
 		$self->{data} = {
-			'COPPA' => 0,
-			'password' => undef,
-			'kick_by' => undef,
-			'kick_reason' => undef,
+			COPPA			=> undef,
+			password		=> undef,
+			sanity			=> undef,
+			kick_by			=> undef,
+			kick_reason		=> undef,
 		};
-		$self->{saved} = 0;
+		$self->recreateId();
 	} # end create
+
+
+# Recreate the session ID, and mark this session as new.
+	sub recreateId {
+		my $self = shift;
+		$self->{id} = Digest::MD5::md5_hex(rand(1000000) . rand(10000) . rand(100) . rand(2) . scalar localtime()  . $$);
+		$self->{saved} = 0;
+	} # end recreateId
 
 
 # Return the database handle
@@ -59,17 +68,18 @@ package Session;
 	sub retrieve {
 		my $self = shift;
 		my $id = shift;
-		my $session_data = $self->db->selectrow_hashref('SELECT * FROM sessions WHERE id = ?', $id);
+		my $session_data = $self->db->selectrow_hashref('SELECT * FROM sessions WHERE id = ?', undef, $id);
 	# No session?   Create a new one.
 		if(!$session_data || !defined $session_data->{id}) {
 			$self->create();
 			return;
 		} # end if
+		$self->{id} = $session_data->{id};
 		$self->{ip} = $session_data->{ip};
 		$self->{created} = $session_data->{created};
 		$self->{updated} = $session_data->{updated};
 		$self->{kicked} = $session_data->{kicked};
-		$self->{data} = Session::_unserializeData($session_data->{data});
+		$self->{data} = Natter::Session::_unserializeData($session_data->{data});
 		$self->{saved} = 1;
 		return 1;
 	} # end retrieve
@@ -83,7 +93,7 @@ package Session;
 		$current_ip =~ s/(\.\d+)$//;
 		my $last_ip = $self->{ip};
 		$last_ip =~ s/(\.\d+)$//;
-		return $current_ip == $last_ip ? 1 : 0;
+		return $current_ip eq $last_ip ? 1 : 0;
 	} # end validate
 
 
@@ -92,7 +102,8 @@ package Session;
 		my $self = shift;
 		my $query = $self->{saved}
 			? 'UPDATE sessions SET ip = ?, created = ?, updated = ?, kicked = ?, data = ? WHERE id = ?'
-			: 'INSERT INTO SESSIONS(ip, created, updated, kicked, data, ip) VALUES(?, ?, ?, ?, ?, ?)';
+			: 'INSERT INTO sessions(ip, created, updated, kicked, data, id) VALUES(?, ?, ?, ?, ?, ?)';
+		my $data = Natter::Session::_serializeData($self->{data});
 		$self->db->do(
 			$query,
 			undef,
@@ -100,13 +111,13 @@ package Session;
 			$self->{created},
 			$self->{updated},
 			$self->{kicked},
-			Session::_serializeData($self->{data}),
+			$data,
 			$self->{id}
 		);
 		$self->{saved} = 1;
-	# Clean up after old sessions, 2% chance
+	# Clean up after old sessions, 2% chance, 12 hour window.
 		if(int(rand(50)) == 25) {
-			my $old_sessions = $self->db->selectcol_arrayref('SELECT id FROM sessions WHERE updated < ?', undef, time() - (60 * 60 * 2));
+			my $old_sessions = $self->db->selectcol_arrayref('SELECT id FROM sessions WHERE updated < ?', undef, time() - (60 * 60 * 12));
 			if(scalar @$old_sessions) {
 				$self->db->do('DELETE FROM sessions WHERE id IN(?)', undef, $old_sessions);
 				$self->db->do('UPDATE session_bans SET session_id = NULL WHERE session_id = IN(?)', undef, $old_sessions);
@@ -151,9 +162,10 @@ package Session;
 # Determine if this user is banned; if so, return the end-of-ban time.
 	sub isBanned {
 		my $self = shift;
+		$self->{kicked} = 0 if $self->{kicked} <= time();
 		return $self->{kicked} if $self->{kicked};
 	# Kicked is saved as part of the session; now check the IP...
-		my $ban_info = BanManager::checkIPBan(main::currentIP());
+		my $ban_info = Natter::BanManager::checkIPBan(main::currentIP());
 	# No ban?
 		return if (!$ban_info || !defined $ban_info->{ip});
 	# b&
@@ -187,3 +199,5 @@ package Session;
 	sub _unserializeData {
 		return JSON::PP::decode_json(shift);
 	} # end _unserializeData
+
+1;

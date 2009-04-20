@@ -14,7 +14,7 @@
 #
 # Questions?  Comments?  <capps@solareclipse.net>
 
-package BanManager;
+package Natter::BanManager;
 	use strict;
 	use warnings;
 
@@ -23,13 +23,13 @@ package BanManager;
 
 # Create a new instance
 	sub new {
-		return \$BanManager::instance if(defined $BanManager::instance);
+		return \$Natter::BanManager::instance if(defined $Natter::BanManager::instance);
 		my $class = shift;
 		my $options = {
 			db => main::getDBHandle(),
 		};
 		my $self = bless($options, $class);
-		$BanManager::instance = \$self;
+		$Natter::BanManager::instance = \$self;
 		return $self;
 	} # end new
 
@@ -97,6 +97,7 @@ package BanManager;
 	} # end addIPBan
 
 
+# Lift an IP ban (by id)
 	sub liftIPBan {
 		my $self = shift;
 		my $ban_id = shift;
@@ -115,10 +116,20 @@ package BanManager;
 	} # end liftIPBan
 
 
+# Clear an IP ban from the list (by id)
 	sub clearIPBan {
 		my $self = shift;
 		my $ban_id = shift;
-		$self->db->do('DELETE FROM ip_bans WHERE id = ?', $ban_id);
+		my $cleared_by = shift;
+		$self->db->do('
+			UPDATE ip_bans
+			   SET cleared_by = ?,
+			       cleared = ?
+			 WHERE id = ?
+			',
+			undef,
+			$ban_id
+		);
 	} # end clearIPBan
 
 
@@ -127,7 +138,7 @@ package BanManager;
 	sub checkIPBan {
 		my $self = shift if(scalar @_ == 2);
 		my $ip_address = shift if(scalar @_ == 1);
-		my $db = $self ? $self->db() : main::getDBHAndle();
+		my $db = $self ? $self->db() : main::getDBHandle();
 	# Now, where were we?
 		my @ip = split /\./, $ip_address;
 		my $ip_3 = join('.', @ip[0,1,2]) . '.0';
@@ -137,6 +148,7 @@ package BanManager;
 			  FROM ip_bans
 			 WHERE ip IN(?, ?, ?)
 			       AND lifted >= ?
+				   AND cleared > 0
 			 ORDER BY duration DESC
 			 LIMIT 1
 			',
