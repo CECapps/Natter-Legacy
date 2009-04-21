@@ -55,7 +55,7 @@ package Natter::Session;
 # Recreate the session ID, and mark this session as new.
 	sub recreateId {
 		my $self = shift;
-		$self->{id} = Digest::MD5::md5_hex(rand(1000000) . rand(10000) . rand(100) . rand(2) . scalar localtime()  . $$);
+		$self->{id} = Digest::MD5::md5_hex(rand(1000000) . rand(10000) . rand(100) . rand(2) . scalar localtime() . $$);
 		$self->{saved} = 0;
 	} # end recreateId
 
@@ -122,7 +122,7 @@ package Natter::Session;
 				$self->db->do('DELETE FROM sessions WHERE id IN(?)', undef, $old_sessions);
 				$self->db->do('UPDATE session_bans SET session_id = NULL WHERE session_id = IN(?)', undef, $old_sessions);
 			# Another 10% chance to clean up the database file
-				$self->db->do('VACUUM()') if(int(rand(10)) == 5);
+				$self->db->do('VACUUM') if(int(rand(10)) == 5);
 			} # end if
 		} # end if
 	} # end save

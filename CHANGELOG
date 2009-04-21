@@ -2,23 +2,40 @@ Natter Changelog
 
 Version: 4.10.0
 Codename: Ingress
-Date: April 17, 2009
- - Massively overhauled the session and ban system.  Sessions and bans now use
-   an SQLite database via DBI and DBD::SQLite.
- - Bans will be migrated from the old Storable method after the first login to
-   the guard frame.  The old sessions directory can be deleted after migration.
- - Sessions can not be migrated.  Users will be kicked from the chat during the
-   upgrade, and must reload the chat frameset.
- - Session bans are now recorded and displayed on the ban list page.
- - Session bans are now limited to no more than 12 hours.  Attempting to set a
-   longer ban on a session will cause it to be limited to 12 hours.
- - The "sanity", "COPPA", "b4nn4g3", and "password" cookies are no longer used.
-   The single "session" cookie replaces them.  Bots and Proxies should not be
-   affected by this, unless they were looking directly for those cookie names.
-   If your Bot or Proxy was looking for those names, please refrain from looking
-   for the "session" cookie, as this is bad practice, and the "session" cookie
-   is unlikely to retain that exact name in the future.  The required procedure
-   to enter the chat as a Bot or Proxy is still identical.
+Date: April 20, 2009
+ - Massively overhauled the session system.
+    - Now uses DBI and DBD::SQLite to store sessions.
+    - Sessions can not be migrated.  Users will be kicked out after the upgrade
+      and must re-enter the chat password and re-COPPA-ize.  Don't upgrade when
+      people are using the chat, and they'll never notice.
+    - Sessions are now 12 hours in length.  Users with a session cookie that
+      return to the chat after more than 12 hours may be asked to re-enter.
+    - All previous cookies have been retired in favor of the session cookie.
+    - Bots and Proxies may be impacted.  See notes below.
+TODO: - Massively overhauled the ban system.
+    - Now uses DBI and DBD::SQLite to store bans.
+    - Migration of old bans will occur on the first login to the guard frameset.
+    - Session bans are now recorded in the ban logs.
+    - Session bans are now limited to 12 hours in length.
+    - Lifted, cleared bans are no longer deleted from the ban log.  They may now
+      be viewed by using links on the ban log page.
+TODO:  - Overhauled the HTML generation code.
+    - Most HTML and wording is now present in files in the "templates" folder.
+	- Script output is now done through a single channel, with extra informative
+	  HTTP headers.  This may help eliminate the "the server is telling me to
+	  download chat3.cgi" problem.
+ - Bot and Proxy behavior may be impacted by this update.
+    - The cookie changes may throw off code behavior.  If you have been looking
+	  for and setting the individual "sanity", "COPPA", and "password" cookies,
+	  you'll need to stop doing that.  Sanity state is kept in the session,
+	  as is COPPA and password information.
+	- Best practice would be to simply accept any cookie sent from the script.
+	- Your code should post at least once an hour, if the user is inactive, to
+	  maintain session activity.  A simple GET of action=post should work.
+
+
+---- Older Versions ----
+
 
 Version: 4.9.3
 Date: April 15, 2009
@@ -68,9 +85,6 @@ Date: March 28, 2009
    the pre-Mozilla Netscape formula.  Viewers should now always see the same color, regardless of
    browser.  The classic Netscape colors have been added to a translation list, so colors such as
    "aliceblue" will continue to work.
-
-
----- Older Versions ----
 
 
 Version: 4.8

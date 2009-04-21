@@ -31,6 +31,7 @@ sub getConfig {
 		NonCGIPath 		=> $basepath . $pubdirname,
 		LogsPath 		=> $basepath . $pubdirname . q!/logs!,
 		SessionPath 	=> $basepath . $pubdirname . q!/sessions!,
+		DatabasePath	=> $basepath . $pubdirname . q!/database!,
 	# Options
 		MessageLimit	=> 15,
 		EnableCaptions	=> 0,
@@ -54,7 +55,7 @@ sub getConfig {
 	$z->{CSSFile} 		= 'style.php';
 	$z->{MessagesFN} 	= 'messages';
 	$z->{MessagesFX} 	= '.html';
-	$z->{DBFile}		= 'database/chat3.sqlite';
+	$z->{DBFile}			= $z->{DatbasePath} . '/chat3.sqlite';
 	$z->{ScriptName} 		= $z->{CGIURL} 		. "/" . $z->{Script};
 	$z->{GuardScriptName} 	= $z->{CGIURL} 		. "/" . $z->{GuardScript};
 	$z->{MessagesFile} 		= $z->{NonCGIPath} 	. "/" . $z->{MessagesFN} . $z->{MessagesFX};
