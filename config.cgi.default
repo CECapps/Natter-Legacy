@@ -30,7 +30,6 @@ sub getConfig {
 		CGIPath 		=> $basepath . $pubdirname,
 		NonCGIPath 		=> $basepath . $pubdirname,
 		LogsPath 		=> $basepath . $pubdirname . q!/logs!,
-		SessionPath 	=> $basepath . $pubdirname . q!/sessions!,
 		DatabasePath	=> $basepath . $pubdirname . q!/database!,
 	# Options
 		MessageLimit	=> 15,

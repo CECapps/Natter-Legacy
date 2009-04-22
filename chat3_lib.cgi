@@ -113,7 +113,7 @@ our $VERSION_TAG = '"Ingress"';
 	# sessions.  Unfortunately I'm lazy, and this should work anyway.
 		$dbh->do('
 			CREATE TABLE IF NOT EXISTS ip_bans (
-				id			INT			PRIMARY KEY, -- this is auto_increment
+				id			INTEGER PRIMARY KEY AUTOINCREMENT,
 				ip			VARCHAR(15)	NOT NULL,
 				reason 		TEXT		NOT NULL,
 				created		INT			NOT NULL,
@@ -131,7 +131,7 @@ our $VERSION_TAG = '"Ingress"';
 
 		$dbh->do('
 			CREATE TABLE IF NOT EXISTS session_bans (
-				id			INT			PRIMARY KEY, -- this is auto_increment
+				id			INTEGER PRIMARY KEY AUTOINCREMENT,
 				session_id	VARCHAR(32),
 				reason 		TEXT		NOT NULL,
 				created		INT			NOT NULL,
@@ -200,6 +200,7 @@ our $VERSION_TAG = '"Ingress"';
 		if($ENV{HTTP_USER_AGENT} =~ m/RealIP=([\d\.]+)$/) {
 			return $1;
 		} # end if
+		$ip ||= '127.0.0.1';
 		return $ip;
 	} # end currentIP
 
@@ -293,18 +294,6 @@ our $VERSION_TAG = '"Ingress"';
 	} # end openFileRW
 
 
-# Print a cookie header
-	sub printCookie {
-		&printHeader("Set-Cookie: $_[0]");
-	} # end printCookie
-
-
-# Print an HTTP header
-	sub printHeader {
-		print qq($_[0]\n);
-	} # end printHeader
-
-
 # Generate a string of random characters
 	sub randomGenerator {
 		my @letters = ("a".."z","A".."Z",0..9);
@@ -333,8 +322,6 @@ our $VERSION_TAG = '"Ingress"';
 # Emit boilerplate HTML and print a message to the user
 	sub standardHTML {
 		my $text;
-
-		print CGI::header();
 	# If we received a hash of options, it's a complex message.
 		my $pbstring = &createPoweredBy();
 		if(ref($_[0]) =~ m/HASH/) {
@@ -352,7 +339,7 @@ FORMAT
 			$text = join("", @_) . qq~<p class="copy">$pbstring</p>~;
 		} # end if
 
-		print<<STANDARDhtml;
+		return <<STANDARDhtml;
 <html>
 <head>
 	<link rel="stylesheet" href="$config->{CSSName}" type="text/css" />
@@ -364,173 +351,24 @@ FORMAT
 </html>
 <!-- End -->
 STANDARDhtml
-
-		&Exit();
 	} # end standardHTML
 
+
+	sub standardHTMLForErrors {
+		my $html = standardHTML(@_);
+		if(defined $response && ref $response =~ /Natter::HTTP_Response/) {
+			$response->setBody(standardHTML(@_));
+		} else {
+			print CGI::header();
+			print $html;
+		} # end if
+		&Exit();
+	}
 
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Sanity checking subroutines
-
-# Make sure the user didn't fail the COPPA check.
-	sub checkCOPPAToken {
-	# But don't check if COPPA checking is disabled
-		return if(!$config->{COPPAAge});
-		my $coppa = $session->{data}->{COPPA};
-	# If the user hasn't been prompted, skip the check.
-		return if(!$coppa);
-	# If the user has passed the check, skip
-		return if($coppa eq "over");
-	# If the user is underage, bail.
-		noEntry_COPPA() if($coppa eq "under");
-	} # end checkCOPPAToken
-
-
-# Check to see if the user has been banned.
-	sub checkKickBanToken {
-		my $is_banned = $session->isBanned();
-		return if(!$is_banned);
-		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
-	} # end checkKickBanToken
-
-
-# Check that the session we're processing has gone through the intro process,
-# i.e. that the user is accepting cookies.
-	sub checkSanityToken {
-		noEntry_Insane unless $session->{data}->{sanity} == 1;
-	} # end checkSanityToken
-
-
-# Check to see if the guard script cookie is present.  If not, prompt the user to log in.
-	sub checkAuthCookie {
-		my @auth = cookie("$config->{CookiePrefix}_guard");
-		if(!@auth) {
-			if(exists $in{'username'}) {
-				if(exists $guard_list->{$in{'username'}}) {
-					if($in{'password'} eq $guard_list->{$in{'username'}}) {
-						&printCookie(cookie(
-							-name    => "$config->{CookiePrefix}_guard",
-							-value   => [$in{username}, $in{password}],
-							));
-						return;
-					} else {
-						# passwd mismatch
-						&standardHTML("Wrong password for user '$in{username}'");
-					} # end if
-				} else {
-					# no such user
-					&standardHTML("No such user '$in{username}'");
-				} # end if
-			} else {
-				# no form input
-				&standardHTML({
-					header => "Enter Authorization",
-					body => <<FORMBODY
-<form id="entrance" method="POST" action="$config->{GuardScriptName}">
-<table border="0" align="center">
-<tr><td class="body">Username:</td><td><input type="text" name="username" id="username" class="textbox"></td></tr>
-<tr><td class="body">Password:</td><td><input type="password" name="password" id="password" class="textbox"></td></tr>
-<tr><td colspan="2"><input type="submit" value="Authorize" class="button"></td></tr>
-</table>
-</form>
-FORMBODY
-	,
-					footer => "",
-				});
-			} # end if
-		} # end if
-	} # end checkAuthCookie
-
-
-# Check to see if the user is logged in.  If so, return true.
-	sub checkAuthCookie2 {
-		my @auth = cookie("$config->{CookiePrefix}_guard");
-		if(!@auth) {
-			if(exists $in{'username'}) {
-				if(exists $guard_list->{$in{'username'}}) {
-					if($in{'password'} eq $guard_list->{$in{'username'}}) {
-						return 1
-					} # end if
-				} # end if
-			} # end if
-		} # end if
-		return 0;
-	} # end checkAuthCookie2
-
-
-# Check to see if the user has the password token
-	sub checkPassword {
-		return if !$config->{ChatPassword};
-		noEntry_MissingPassword if($session->{data}->{password} ne $config->{ChatPassword});
-		return;
-	} # end checkPassword
-
-
-# Complain that the user has tried the wrong password too many times.
-	sub noEntry_TooManyTries {
-		&standardHTML({
-			header => "Password Failure",
-			body => "You have failed at entering the password too many times.  Try again later.",
-			footer => "",
-		});
-		&Exit();
-	} # end noEntry_TooManyTries
-
-
-# Complain that the user's password token is missing
-	sub noEntry_MissingPassword {
-		&standardHTML({
-			header => "Missing Password",
-			body => "Your browser did not send the proper password.  You'll need to re-enter the chat, sorry.",
-			footer => "",
-		});
-		&Exit();
-	} # end noEntry_MissingPassword
-
-
-# Complain that the user's cookies are busted.
-	sub noEntry_Insane {
-		&standardHTML({
-			header => "No Cookie",
-			body => "It appears that your web browser did not store the cookie I sent it.  You must enable cookies to chat here.",
-			footer => "(For more information on cookies, please refer to your web browser's help function.)",
-		});
-		&Exit();
-	} # end noEntry_Insane
-
-
-# Complain that the user has been kicked or banned
-	sub noEntry_KickBan {
-		&printHeader('Location: ' . $config->{BannedRedirect}) if $config->{BannedRedirect};
-		&standardHTML({
-			header => "Kicked or Banned",
-			body => "Sorry, you have been kicked or banned from this chat room for $_[0] minutes.<br />The reason for this kick or ban is: $_[1].",
-			footer => ($config->{BannedRedirect} ? qq~<script type="text/javascript">location.href='$config->{BannedRedirect}';</script>~ : ''),
-		});
-		&Exit();
-	} # end noEntry_KickBan
-
-
-# Complain that the user is underage.
-	sub noEntry_COPPA {
-		&standardHTML({
-			header => "Sorry",
-			body => "Sorry, those under the age of $config->{COPPAAge} may not chat here.",
-			footer => "",
-		});
-		&Exit();
-	} # end noEntry_COPPA
-
-
-# Determine if a user is kicked or banned.  If so, the user is notified
-	sub decideBannage {
-		my $is_banned = $session->isBanned();
-		return if(!$is_banned);
-		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
-	} # end sub
-
+# Sanity checking & data fixing
 
 # Fix a bogus color, using the Netscape 4.x method (hybridized with the IE and Mozilla methods)
     sub fix_color {
@@ -603,12 +441,14 @@ FORMBODY
         return '#' . join('', @new_rgb);
     } # end fix_color
 
+
 # Get a name back from a color code
 	sub getColorName {
 		my $hex = lc(shift);
 		&generateReverseColorMap() if(!defined $reverse_color_map);
 		return defined $reverse_color_map->{$hex} ? $reverse_color_map->{$hex} : $hex;
 	} # end getColorName
+
 
 # Flip the color maps
 	sub generateReverseColorMap {

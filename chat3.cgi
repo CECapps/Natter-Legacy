@@ -25,30 +25,34 @@ use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
 use Natter::Session;
-use Digest::MD5;
+use Natter::HTTP_Request;
+use Natter::HTTP_Response;
 require "chat3_lib.cgi";
 
 # All errors are handled by the standardHTML routine, courtesy CGI::Carp
-	set_message(\&standardHTML);
+	set_message(\&standardHTMLForErrors);
 
 # Pull in our configuration information
 	&evalFile("./config.cgi");
 	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
 
-# Pull in the session manager
-	#our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });
+# Fire up the HTTP Request...
+	our $cgi = new CGI;
+	our $request = new Natter::HTTP_Request();
+	our $response = new Natter::HTTP_Response();
+	our %in = $request->getParams();
 
-# Create a new Session
+# Initialize the user's session
 	our $session = new Natter::Session();
-	my $session_id = cookie($config->{CookiePrefix} . '_session');
+	my $session_id = $request->getCookie($config->{CookiePrefix} . '_session');
 	if(!$session_id) {
 	# If we didn't get a session cookie, create a new session for the user.
 		$session->create();
 		$session_id = $session->{id};
-		&printCookie(cookie(
-				-name    => $config->{CookiePrefix} . '_session',
-				-value   => [$session_id],
-			));
+		$response->addCookie(
+			-name    => $config->{CookiePrefix} . '_session',
+			-value   => [$session_id],
+		);
 	} else {
 	# Otherwise, we got a valid session id.  Try and load it up.
 		my $retrieved = $session->retrieve($session_id);
@@ -59,19 +63,16 @@ require "chat3_lib.cgi";
 			$session->create() if !$retrieved;
 			$session->recreateId();
 			$session_id = $session->{id};
-			&printCookie(cookie(
-					-name    => $config->{CookiePrefix} . '_session',
-					-value   => [$session_id],
-				));
+			$response->addCookie(
+				-name    => $config->{CookiePrefix} . '_session',
+				-value   => [$session_id],
+			);
 		} # end if
 	} # end if
 
 # Engage the global file lock
 	our $LOCKFILE = &makeGlob;
 	&lockAndLoad;
-
-# Emulate cgi-lib's ReadParse() for ease of use.  Calling param() all the time is annoying.
-	our %in = map{$_ => CGI::param($_)} CGI::param();
 
 # This code was designed when the COPPA law was interpreted more striclty than
 # it was now.  The minimum entry age can be dictated in the config, or disabled.
@@ -99,11 +100,11 @@ require "chat3_lib.cgi";
 		&{$actions{$in{action}}};
 		&Exit();
 	} else {
-		&standardHTML({
+		$response->appendBody(standardHTML({
 			header => "Error",
 			body => "I'm sorry Dave, I can't do that.",
 			footer => "Please try your request again.",
-		});
+		}));
 	} # end if
 
 # That's all, folks!
@@ -121,8 +122,8 @@ require "chat3_lib.cgi";
 	# No sanity flag needed
 		my $dbh = getDBHandle();
 		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
-		my $tries = $record->[0];
-		my $last_try = $record->[1];
+		my $tries = $record->[0] + 0;
+		my $last_try = $record->[1] + 0;
 	# Reset their tries after half an hour
 		my $now = time();
 		$tries = 0 if($last_try < $now - (60 * 30));
@@ -132,7 +133,7 @@ require "chat3_lib.cgi";
 		my $tries_left = $config->{PasswordAttempts} - $tries;
 		my $tries_wording = $tries_left == $config->{PasswordAttempts} ? '' : "You have <b>$tries_left</b> tries remaining.";
 	# Prompt the user.
-		&standardHTML({
+		$response->appendBody(standardHTML({
 			header => "Welcome to $config->{ChatName}",
 			body => <<PASSWORD_PROMPT
 <script type="text/javascript">
@@ -149,7 +150,7 @@ This chat is now password protected.  $tries_wording Please enter the password:
 PASSWORD_PROMPT
 			,
 			footer => '',
-		});
+		}));
 	} # end action_password_prompt
 
 # If passwords are enabled and the user provided one, check it
@@ -172,11 +173,11 @@ PASSWORD_PROMPT
 		} # end if
 	# It must be a failure.
 		$dbh->do('UPDATE floodcheck SET tries = tries + 1, last_try = ? WHERE ip = ?', undef, $now, &currentIP());
-		&standardHTML({
+		$response->appendBody(standardHTML({
 			header => 'Wrong Password',
 			body => qq~<br />Wrong password, no cookie!  <a href="$config->{ScriptName}?action=password_prompt">Try again?</a>~,
 			footer => '',
-		});
+		}));
 	} # end action_password_check
 
 # Say hi to the user, ask them to indicate their age
@@ -187,11 +188,13 @@ PASSWORD_PROMPT
 		&checkPassword;
 	# If they've already done the age check, throw them at the post form.
 		if($session->{data}->{COPPA} eq 'over') {
-			&printHeader("Location: $config->{ScriptName}?action=post\n");
+			$response->addHeader('Status', '302 Found');
+			$response->addHeader('Location', $config->{ScriptName} . '?action=post');
+			&Exit();
 		} # end if
 	# Produce the form
 		if($config->{COPPAAge}) {
-			&standardHTML({
+			$response->appendBody(standardHTML({
 				header => "Welcome to $config->{ChatName}",
 				body => <<COPPA_CHECK
 Thank you for visiting.  In order to enter this chat, you must verify your age.
@@ -203,9 +206,9 @@ Thank you for visiting.  In order to enter this chat, you must verify your age.
 COPPA_CHECK
 ,
 				footer => "",
-			});
+			}));
 		} else {
-			&standardHTML({
+			$response->appendBody(standardHTML({
 				header => "Welcome to $config->{ChatName}",
 				body => <<COPPA_CHECK
 Thank you for visiting.  Please be sure to read the rules before joining the chat.
@@ -215,7 +218,7 @@ Thank you for visiting.  Please be sure to read the rules before joining the cha
 COPPA_CHECK
 ,
 				footer => "",
-			});
+			}));
 		} # end if
 	} # end sub
 
@@ -237,7 +240,8 @@ COPPA_CHECK
 	# Otherwise they get to notify everyone that they've entered the chat
 		else {
 			$session->{data}->{COPPA} = 'over';
-			&printHeader(qq(Location: $config->{ScriptName}?action=post;special=entrance\n));
+			$response->addHeader('Status', '302 Found');
+			$response->addHeader('Location', $config->{ScriptName} . '?action=post;special=entrance');
 			&Exit();
 		} # end if
 	} # end sub
@@ -270,12 +274,12 @@ COPPA_CHECK
 	# Update the guard/ban list of users
 		&updatePostlog if $added_chat_message;
 	# Feed the form back to them
-		&standardHTML({
+		$response->appendBody(standardHTML({
 			header => "",
 			body => &generatePostForm,
 			footer => "",
 			no_powered => 1,
-		});
+		}));
 		&Exit();
 	} # end sub
 
@@ -608,11 +612,14 @@ WHOSITS
 	# Don't actually update anything if it's just a name change
 		return undef if(defined $in{name_change} && $in{name_change} eq "true");
 		my $raw = CGI::unescapeHTML($in{'message'});
+		$raw ||= '';
 	# Yoink out nasty crap and emptyness.
 		$raw =~ s!<[^<]+>!!gi;
 		$raw =~ s![\s\n\r]!!gi;
 	# Don't post blank messages
-		return undef if(($raw eq "") && !$in{special});
+		return undef if((!defined $raw || $raw eq "") && !$in{special});
+	# Don't post the intro message if the user is an authenticated guard.
+		return undef if exists $in{special} && $session->{data}->{guard};
 
 	# Piece together the form HTML
 		my $name = ($in{'username'} ne "Name" ? $in{'username'} : " " );
@@ -640,8 +647,8 @@ WHOSITS
 		$newline .= qq! <span class="thetime"><font color="$msgcolor"> ($timebit) </font></span>!;
 		$newline .= qq( <span class="themessage"><font color="$msgcolor">$message</font></span> </div>);
 
-	# If this is a special user entrance, post that instead.
-		if((defined $in{special} && $in{special} eq "entrance") && (!&checkAuthCookie2)) {
+	# If this is a special user entrance, post that instead.  Users logged in as guards don't get this.
+		if((defined $in{special} && $in{special} eq "entrance")) {
 			$newline = qq~<div class="messageline welcome"> <span class="themessage"><span class="star">*</span> A user has entered the chat.</font></span> <span class="thetime"> ($timebit) </span> </div>~;
 		} # end if
 
@@ -695,13 +702,15 @@ WHOSITS
 	sub updatePostlog {
 	# De-HTMLize the name
 		my $username = $in{'username'};
+		$username ||= 'Name'; # yes, really.
 		$username =~ s/<.+?>//g;
 	# Pick the proper color
 		my $namecolor = $in{'color'};
+		$namecolor ||= 'white';
 		my $msgcolor = ( $in{'mcolor'} ne "Message Color" ? $in{'mcolor'} : $namecolor );
 		$msgcolor = $namecolor unless $msgcolor;
 	# Which user are we?
-		my $sesid = $session->{id}; # $sessions->current_id;
+		my $sesid = $session->{id};
 		my $ip = &currentIP;
 
 	# time() -> UTC, so it's OK here
@@ -724,11 +733,118 @@ WHOSITS
 	} # end updatePostlog
 
 
-# Cleanly exit.  Make sure to record session data.
+# Cleanly exit, emitting the response and saving the user's session
 	sub Exit {
-		#use Data::Dumper;
-		#print pre(&Dumper($sessions->record()));
-		#$sessions->record();
 		$session->markActive();
+		$response->output() if $response->canOutput();
 		exit(0);
 	} # end Exit
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Sanity checking subroutines and error messages
+
+# Make sure the user didn't fail the COPPA check.
+	sub checkCOPPAToken {
+	# But don't check if COPPA checking is disabled
+		return if(!$config->{COPPAAge});
+		my $coppa = $session->{data}->{COPPA};
+	# If the user hasn't been prompted, skip the check.
+		return if(!$coppa);
+	# If the user has passed the check, skip
+		return if($coppa eq "over");
+	# If the user is underage, bail.
+		noEntry_COPPA() if($coppa eq "under");
+	} # end checkCOPPAToken
+
+
+# Check to see if the user has been banned.
+	sub checkKickBanToken {
+		my $is_banned = $session->isBanned();
+		return if(!$is_banned);
+		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
+	} # end checkKickBanToken
+
+
+# Check that the session we're processing has gone through the intro process,
+# i.e. that the user is accepting cookies.
+	sub checkSanityToken {
+		noEntry_Insane() unless $session->{data}->{sanity} == 1;
+	} # end checkSanityToken
+
+
+# Check to see if the user has the password token
+	sub checkPassword {
+		return if !$config->{ChatPassword};
+		noEntry_MissingPassword() if($session->{data}->{password} ne $config->{ChatPassword});
+		return;
+	} # end checkPassword
+
+
+# Complain that the user has tried the wrong password too many times.
+	sub noEntry_TooManyTries {
+		$response->appendBody(standardHTML({
+			header => "Password Failure",
+			body => "You have failed at entering the password too many times.  Try again later.",
+			footer => "",
+		}));
+		&Exit();
+	} # end noEntry_TooManyTries
+
+
+# Complain that the user's password token is missing
+	sub noEntry_MissingPassword {
+		$response->appendBody(standardHTML({
+			header => "Missing Password",
+			body => "Your browser did not send the proper password.  You'll need to re-enter the chat, sorry.",
+			footer => "",
+		}));
+		&Exit();
+	} # end noEntry_MissingPassword
+
+
+# Complain that the user's cookies are busted.
+	sub noEntry_Insane {
+		$response->appendBody(standardHTML({
+			header => "No Cookie",
+			body => "It appears that your web browser did not store the cookie I sent it.  You must enable cookies to chat here.",
+			footer => "(For more information on cookies, please refer to your web browser's help function.)",
+		}));
+		&Exit();
+	} # end noEntry_Insane
+
+
+# Complain that the user has been kicked or banned
+	sub noEntry_KickBan {
+	# Do banned users get redirected to another page?
+		if($config->{BannedRedirect}) {
+			$response->addHeader('Status', '302 Found');
+			$response->addHeader('Location', $config->{BannedRedirect});
+		} # end if
+	# Otherwise / in addition, let's let the user know that they're banned
+		$response->appendBody(standardHTML({
+			header => "Kicked or Banned",
+			body => "Sorry, you have been kicked or banned from this chat room for $_[0] minutes.<br />The reason for this kick or ban is: $_[1].",
+			footer => ($config->{BannedRedirect} ? qq~<script type="text/javascript">location.href='$config->{BannedRedirect}';</script>~ : ''),
+		}));
+		&Exit();
+	} # end noEntry_KickBan
+
+
+# Complain that the user is underage.
+	sub noEntry_COPPA {
+		$response->appendBody(standardHTML({
+			header => "Sorry",
+			body => "Sorry, those under the age of $config->{COPPAAge} may not chat here.",
+			footer => "",
+		}));
+		&Exit();
+	} # end noEntry_COPPA
+
+
+# Determine if a user is kicked or banned.  If so, the user is notified
+	sub decideBannage {
+		my $is_banned = $session->isBanned();
+		return if(!$is_banned);
+		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
+	} # end sub

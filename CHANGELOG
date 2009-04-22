@@ -12,15 +12,14 @@ Date: April 20, 2009
       return to the chat after more than 12 hours may be asked to re-enter.
     - All previous cookies have been retired in favor of the session cookie.
     - Bots and Proxies may be impacted.  See notes below.
-TODO: - Massively overhauled the ban system.
+ - Massively overhauled the ban system.
     - Now uses DBI and DBD::SQLite to store bans.
     - Migration of old bans will occur on the first login to the guard frameset.
     - Session bans are now recorded in the ban logs.
     - Session bans are now limited to 12 hours in length.
     - Lifted, cleared bans are no longer deleted from the ban log.  They may now
       be viewed by using links on the ban log page.
-TODO:  - Overhauled the HTML generation code.
-    - Most HTML and wording is now present in files in the "templates" folder.
+ - Overhauled the HTML generation code.
 	- Script output is now done through a single channel, with extra informative
 	  HTTP headers.  This may help eliminate the "the server is telling me to
 	  download chat3.cgi" problem.

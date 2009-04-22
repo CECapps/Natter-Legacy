@@ -23,28 +23,60 @@ no strict("refs");	# :-P x2
 use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
-use Storable qw(retrieve);
-use SessionKeeper;
-use Digest::MD5;
+use Natter::Session;
+use Natter::HTTP_Request;
+use Natter::HTTP_Response;
 require "chat3_lib.cgi";
 
 # All errors are handled by the standardHTML routine, courtesy CGI::Carp
-	set_message(\&standardHTML);
+	set_message(\&standardHTMLForErrors);
 
 # Pull in our configuration information
 	&evalFile("./config.cgi");
 	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
 	(defined &getGuardList) ? (our $guard_list = &getGuardList) : (die("I can't seem to find my guard configuration.\n"));
 
-# Pull in the session manager
+# Fire up the HTTP Request...
+	our $cgi = new CGI;
+	our $request = new Natter::HTTP_Request();
+	our $response = new Natter::HTTP_Response();
+	our %in = $request->getParams();
+
+# Initialize the user's session
+	our $session = new Natter::Session();
+	my $session_id = $request->getCookie($config->{CookiePrefix} . '_session');
+	if(!$session_id) {
+	# If we didn't get a session cookie, create a new session for the user.
+		$session->create();
+		$session_id = $session->{id};
+		$response->addCookie(
+			-name    => $config->{CookiePrefix} . '_session',
+			-value   => [$session_id],
+		);
+	} else {
+	# Otherwise, we got a valid session id.  Try and load it up.
+		my $retrieved = $session->retrieve($session_id);
+	# Make sure the retrieve worked and the IP matches
+		if(!$retrieved || !$session->validate()) {
+		# The IP didn't match or the session is bogus.  This may be a cookie hijack.
+		# Clone the existing session data and try to recreate it.
+			$session->create() if !$retrieved;
+			$session->recreateId();
+			$session_id = $session->{id};
+			$response->addCookie(
+				-name    => $config->{CookiePrefix} . '_session',
+				-value   => [$session_id],
+			);
+		} # end if
+	} # end if
+
+# Just to get stuff working...
+	use SessionKeeper;
 	our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });
 
 # Engage the global file lock
 	our $LOCKFILE = &makeGlob;
 	&lockAndLoad;
-
-# Emulate cgi-lib's ReadParse() for ease of use.  Calling param() all the time is annoying.
-	our %in = map{$_ => CGI::param($_)} CGI::param();
 
 # Make sure we're actually *DOING* something.
 	if((!exists $in{action}) || ($in{action} eq "")) {
@@ -53,25 +85,31 @@ require "chat3_lib.cgi";
 
 # Set up a list of valid subroutines that the outside world can get to...
 	my %actions = (
-		frameset => \&action_frameset,
-		view => \&action_view,
-		ban => \&action_ban,
-		unban => \&action_unban,
-		delban => \&action_delban,
-		logs => \&action_logs,
-		bans => \&action_bans,
+		frameset		=> \&action_frameset,
+		view			=> \&action_view,
+		ban				=> \&action_ban,
+		unban			=> \&action_unban,
+		delban			=> \&action_delban,
+		logs			=> \&action_logs,
+		bans			=> \&action_bans,
+		authenticate	=> \&action_authenticate,
 	);
+
+# The user can't do anything at all unless he's logged in.
+	if(!$session->{data}->{guard}) {
+		$in{action} = 'authenticate';
+	} # end if
 
 # ... then do the right one.
 	if(exists $actions{$in{action}}) {
 		&{$actions{$in{action}}};
 		&Exit();
 	} else {
-		&standardHTML({
+		$response->appendBody(standardHTML({
 			header => "Error",
 			body => "I'm sorry Dave, I can't do that.",
 			footer => "Please try your request again.",
-		});
+		}));
 	} # end if
 
 # That's all, folks!
@@ -81,23 +119,53 @@ require "chat3_lib.cgi";
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # action_ subroutines
 
+# Prompt the user to log in.
+	sub action_authenticate {
+	# If the user can be authenticated, do so and throw them at the frameset
+		if($request->isPost() && exists $guard_list->{ $in{username} } && $guard_list->{ $in{username} } eq $in{password}) {
+			$session->{data}->{guard} = $in{username};
+			$response->addHeader('Status', '302 Found');
+			$response->addHeader('Location', $config->{GuardScriptName} . '?action=frameset');
+		} # end if
+	# If not, the user will need to be prompted.
+		if(!$session->{data}->{guard}) {
+			my $error = ($request->isPost() || exists $in{username} || exists $in{password})
+						? '<div style="color: red; font-weight: bold; margin: 10px; ">Invalid Credentials</div>'
+						: '';
+		# The user did not provide a username, or this wasn't the submit.  Show them the form.
+			$response->setBody(standardHTML({
+				header => "Enter Credentials",
+				body => <<FORMBODY
+$error
+<form id="entrance" method="POST" action="$config->{GuardScriptName}">
+<table border="0" align="center">
+<tr><td class="body">Username:</td><td><input type="text" name="username" id="username" class="textbox"></td></tr>
+<tr><td class="body">Password:</td><td><input type="password" name="password" id="password" class="textbox"></td></tr>
+<tr><td colspan="2"><input type="submit" value="Authorize" class="button"></td></tr>
+</table>
+</form>
+FORMBODY
+				,
+				footer => '',
+			}));
+		} # end if
+	} # end action_authenticate
+
 # Rewrite the frameset code to insert a section on the right
 	sub action_frameset {
-		&checkAuthCookie;
-
 		my $file = &openFile($config->{NonCGIPath} . "/chat.html");
 		my $frametop = qq(<frameset cols="*, 210" border="2">);
 		my $framebo = qq(<frame src="$config->{GuardScriptName}?action=view" name="ips" id="ips" scrolling="auto"></frameset>);
 		$file =~ s/\<\!-- GFS --\>/$frametop/;
 		$file =~ s/\<\!-- EGFS --\>/$framebo/;
-		print header . $file;
-		&Exit;
+
+		$response->appendBody($file);
+		&Exit();
 	} # end action_frameset
 
 
 # View the list of current users
 	sub action_view {
-		&checkAuthCookie;
 	# User data for this page is kept in an external file in the following format:
 	# Name|^!^|main color|^!^|message color|^!^|Session|^!^|IP|^!^|Timestamp|^!^|
 		my @users = grep(/\|\^\!\^\|/, &openFileAsArray($config->{PostlogFile}));
@@ -111,8 +179,8 @@ require "chat3_lib.cgi";
 		# Reset certain data to sane deaults
 			my $nc = $data[2] || "white";
 			my $mc = $data[1] || "white";
-			my $name = $data[0] || "(lurker)";
-			$name = "(lurker)" if $name eq "Name";
+			my $name = $data[0] || "Name";
+			$name = "<small><i>(lurker)</i></small>" if $name eq "Name";
 		# Multiple chat users can have the same session (one user, multiple tabs)
 			my $idnum;
 			if(exists $uniqs{$data[3]}) {
@@ -210,7 +278,7 @@ TABLE
 				} // end if
 			});
 		// The refresh button
-			$('#banrefreshbtn').click(function(event){
+			$('#banrefreshbtn, #banrefreshbtn_top').click(function(event){
 				location.href = '~ . $config->{GuardScriptName} . q~?action=view';
 			});
 	});
@@ -253,6 +321,9 @@ TABLE
        &raquo; <a href="logs.php?guard=1" target="_blank">Guard Chat Logs</a>
 <br /> &raquo; <a href="$config->{GuardScriptName}?action=bans">Ban History</a>
 
+<br /><br />
+<input type="button" value="Refresh" class="button" id="banrefreshbtn_top">
+<br />
 <form action="guard3.cgi" method="post" name="ex" id="ex">
 <table id="bantable" cellpadding="0" cellspacing="0" border="0">
 $html
@@ -287,19 +358,25 @@ $html
 		<td align="right"><label for="time">Duration:</label></td>
 		<td>
 			<select name="time" id="time" class="textbox">
-				<option value="5"		>5 minutes</option>
-				<option value="15"		>15 minutes</option>
-				<option value="30"		>30 minutes</option>
-				<option value="60" selected="selected">1 hour</option>
-				<option value="360"		>6 hours</option>
-				<option value="720"		>12 hours</option>
-				<option value="1440"	>1 day</option>
-				<option value="10080"	>1 week</option>
-				<option value="40320"	>1 month</option>
-				<option value="120960"	>3 months</option>
-				<option value="241920"	>6 months</option>
-				<option value="483840"	>1 year</option>
-				<option value="2419200"	>5 years</option>
+				<optgroup label="Session &amp; IP">
+					<option value="5"		>5 minutes</option>
+					<option value="15"		>15 minutes</option>
+					<option value="30"		>30 minutes</option>
+					<option value="60" selected="selected">1 hour</option>
+					<option value="120"		>2 hours</option>
+					<option value="180"		>3 hours</option>
+					<option value="360"		>6 hours</option>
+					<option value="720"		>12 hours</option>
+				</optgroup>
+				<optgroup label="IP Only">
+					<option value="1440"	>1 day</option>
+					<option value="10080"	>1 week</option>
+					<option value="40320"	>1 month</option>
+					<option value="120960"	>3 months</option>
+					<option value="241920"	>6 months</option>
+					<option value="483840"	>1 year</option>
+					<option value="2419200"	>5 years</option>
+				</optgroup>
 			</select>
 		</td>
 	</tr>
@@ -318,99 +395,78 @@ $html
 
 </form>
 );
-	# Yes, we use StandardHTML to emit this block of code.... I'm sorry.
-		&standardHTML($html);
+	# Yes, we use StandardHTML to emit this block of code...
+		$response->appendBody(standardHTML($html));
 	} # end action_view
 
 
 # Ban the requested user
 	sub action_ban {
-		&checkAuthCookie;
-
+		my $error;
 		if(!$in{"reason"}) {
-			&standardHTML("You must enter a reason.");
+			$error = "You must enter a reason.";
 		} elsif(!$in{"summy"}) {
-			&standardHTML("You forgot to select someone to remove!");
+			$error = "You forgot to select someone to remove!";
 		} elsif(!$in{"meethod"}) {
-			&standardHTML("How did you forget the method!?");
+			$error = "How did you forget the method!?";
 		} elsif(!$in{"time"}) {
-			&standardHTML("How did you forget the time!?");
+			$error = "How did you forget the time!?";
 		} # end if
 
-		use Data::Dumper;
-
-	# Ban data looks like:
-	#$v->{'63.24.226.48'} = {
-	#                              'BY' => 'Charles',
-	#                              'FOR' => 'RW being an idiot again.',
-	#                              'TIME' => time() + (60 * 60),
-	#                            };
-
-	# Yes, it is spelled with two "e"s.  Why?
-		if($in{meethod} eq "byid") {
-		# Pull up the user's session and smash'em
-			if($sessions->load_if_valid($in{summy})) {
-				$sessions->ban_current({
-				# time() -> UTC, fine here
-					TIME	=> (time() + ($in{time} * 60)),
-					BY		=> (cookie("$config->{CookiePrefix}_guard"))[0], # OH GOD WHAT
-					FOR		=> $in{reason}
-				});
-				$sessions->record();
-				&standardHTML(qq!User banned for $in{time} minutes.<br /><a href="$config->{GuardScriptName}?action=view">Back</a>!);
-			} else {
-				&standardHTML("That session number is invalid.<br /><br />Perhaps my index is b0rked?");
-			} # end if
-		} else {
-		# This is more fun though...
-			$sessions->prep_ip_ban();
-			my $thisip = $in{summy};
-			if($in{meethod} eq "byip3") {
-				$thisip =~ s/^(\d+\.\d+\.\d+\.)\d+$/$1/;
-			} elsif($in{meethod} eq "byip2") {
-				$thisip =~ s/^(\d+\.\d+\.)\d+\.\d+$/$1/;
-			} # end if
-			$sessions->add_ip_ban($thisip, {
-			# time() -> UTC, fine here
-				TIME	=> (time() + ($in{time} * 60)),
-				BY		=> (cookie("$config->{CookiePrefix}_guard"))[0],
-				FOR		=> $in{reason},
-				STARTTIME => time()
-			});
-			$sessions->write_ip_ban();
-			&standardHTML(qq!IP banned for $in{time} minutes.<br /><a href="$config->{GuardScriptName}?action=view">Back</a>!);
+	# Okay, now, where were we?
+		my $success;
+		my $banman = new Natter::BanManager();
+		if(!$error && $in{meethod} eq 'byid') {
+		# This is a session ban.
+			$banman->addSessionBan(
+				$in{summy}, # this will be the session ID in the event of a session ban.
+				$in{time} * 60, # duration
+				$session->{data}->{guard}, # created by
+				$in{reason}, # reason
+			);
+			$success = 'The requested session has been kicked from the chat.';
+		} elsif(!$error && $in{method} =~ m/^byip(\d)$/) {
+		# This is an IP ban!
+			my $method = $1;
+			$banman->addIPBan(
+				$in{summy}, # this will be the IP address in the event of an IP ban
+				$method,
+				$in{time} * 60, # duration
+				$session->{data}->{guard}, # created by
+				$in{reason}, # reason
+			);
+			$success = 'The requested IP address has been banned from the chat.';
+		} elsif(!$error) {
+			$error = 'You confused my poor little brain.  Try again.';
 		} # end if
 
+		$success = $error if $error && !$success;
+		$response->appendBody(standardHTML( $success .  qq~<br />&raquo;<a href="$config->{GuardScriptName}?action=view">Return</a>~ ));
 	} # end action_ban
 
 
 
 # List bans in the logs
 	sub action_bans {
-		&checkAuthCookie;
-
-		my $filename = $config->{SessionPath} . '/ban.cgi';
-		my $banlist = -e $filename && -s $filename ? retrieve($filename) : {};
-		my(@list, @olds);
-		foreach my $ip (keys %{$banlist}) {
-			push(@list, $banlist->{$ip}->{TIME} . "|$ip") if $banlist->{$ip}->{TIME} > time();
-			push(@olds, $banlist->{$ip}->{TIME} . "|$ip") if $banlist->{$ip}->{TIME} < time();
-		} # end foreach
+		my $banman = new Natter::BanManager();
+		my $bans = $banman->getBanList();
+	# Split out current bans from lifted bans.  Makes sorting a bit easier.
+		my $now = time();
+		my @active = grep { $_->{lifted} > $now } @$bans;
+		my @lifted = grep { ($_->{lifted} < $now || $_->{lifted_by}) && !$_->{cleared_by} } @$bans;
+		my @cleared = grep { $_->{cleared_by} } @$bans;
 
 		my $string = qq!&raquo; <a href="$config->{GuardScriptName}?action=view">Back</a><br /><br /><b>Current Bans:</b><br />!;
-		$string .= &banize($banlist, sort { $a <=> $b } @list);
+		$string .= &createBanListHTML(@active);
 		$string .= qq!<br /> <br /><hr /> <b>Expired/Lifted Bans:</b><br />!;
-		$string .= &banize($banlist, reverse sort { $a <=> $b } @olds);
+		$string .= &createBanListHTML(@lifted);
 
-		&standardHTML($string);
-
+		$response->appendBody(standardHTML($string));
 	} # end action_bans
 
 
 # Lift a current ban
 	sub action_unban {
-		&checkAuthCookie;
-
 		$sessions->prep_ip_ban();
 		my $thisip = $in{ip};
 		$sessions->remove_ip_ban($thisip, {
@@ -418,61 +474,85 @@ $html
 			LIFTEDBY => (cookie("$config->{CookiePrefix}_guard"))[0]
 		});
 		$sessions->write_ip_ban();
-		&standardHTML(qq!Ban lifted.<br /><a href="$config->{GuardScriptName}?action=bans">Back</a>!);
+		$response->appendBody(standardHTML(qq!Ban lifted.<br /><a href="$config->{GuardScriptName}?action=bans">Back</a>!));
 	} # end action_unban
 
 
 # Delete a lifted ban
 	sub action_delban {
-		&checkAuthCookie;
-
 		$sessions->prep_ip_ban();
 		my $thisip = $in{ip};
 		$sessions->del_ip_ban($thisip);
 		$sessions->write_ip_ban();
-		&standardHTML(qq!Ban deleted.<br /><a href="$config->{GuardScriptName}?action=bans">Back</a>!);
+		$response->appendBody(standardHTML(qq!Ban deleted.<br /><a href="$config->{GuardScriptName}?action=bans">Back</a>!));
 	} # end action_delban
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Common library subroutines
-
-sub banize {
-
-	my ($banlist, @list) = @_;
-	my @active_bans;
-
-	foreach my $line (@list) {
-		my($timer, $ip) = split(/\|/, $line);
-		my $dt_ts = &getTime($banlist->{$ip}->{TIME});
-		my $ts = $dt_ts->strftime('%Y-%m-%d %H:%M:%S');
-		my $dt_ss = &getTime($banlist->{$ip}->{STARTTIME});
-		my $ss = ($banlist->{$ip}->{STARTTIME} ? $dt_ss->strftime('%Y-%m-%d %H:%M:%S') : "<i>unknown</i>)" );
-		my $iflift = ($banlist->{$ip}->{LIFTEDBY} ? qq!<br /><span class="bannedlifted">(Lifted by $banlist->{$ip}->{LIFTEDBY})</span>!
-			:
-			($banlist->{$ip}->{TIME} > time() ?
-				qq!<br />[<a href="$config->{GuardScriptName}?action=unban&ip=$ip">Lift Ban</a>]!
-				: "")
-			);
-		my $isdel = ($banlist->{$ip}->{TIME} < time() ? qq!<br />[<a href="$config->{GuardScriptName}?action=delban&ip=$ip">Delete Ban</a>]! : "");
-		$active_bans[$#active_bans + 1] = <<HERE;
-<br />
-<b>$ip</b> (<i>$banlist->{$ip}->{BY}</i>)
-<br />S: <span class="bannedstart">$ss</span>
-<br />E: <span class="bannedend">$ts</span>
-<br /><span class="bannedreason">$banlist->{$ip}->{FOR}</span>
-$iflift$isdel
-HERE
+sub createBanListHTML {
+	my @bans = shift;
+	my @ban_html;
+	#use Data::Dumper;
+	#print CGI::header();
+	foreach my $ban (@bans) {
+		#print Dumper $ban;
+		next unless ref $ban eq 'HASH';
+		#$ban = {
+		#	id				=> 0
+		#	token			=> '127.0.0.1' # or session id if it still exists
+		#	token_type		=> 'ip' # or 'session'
+		#	reason			=> 'reason as entered by guard',
+		#	created			=> time(),
+		#	duration		=> 0,
+		#	lifted			=> time(), # in future
+		#	cleared			=> 0, # or time() if cleared
+		#	created_by		=> '',
+		#	lifted_by		=> '',
+		#	cleared_by		=> '',
+		#}
+	# What a mess.  Ban header
+		my $string = '<tr><th>'
+		         . ($ban->{token_type} eq 'ip' ? 'IP# ' : 'Sess# ')
+				 . $ban->{id}
+				 . '</th><th>By '
+				 . $ban->{created_by}
+				 . '</th></tr>';
+	# Created timestamp
+		$string .= '<tr><td class="l">Created:</td><td>'
+		         . getTime($ban->{created})->strftime('%Y-%m-%d %H:%M:%S')
+				 . '</td></tr>';
+	# IP address, if an IP ban
+		$string .= qq!<tr><td class="l">IP:</td><td>$ban->{token}</td></tr>! if $ban->{token_type} eq 'ip';
+	# Reason
+		$string .= qq!<tr><td class="l">Reason:</td><td>$ban->{reason}</td></tr>!;
+	# Expires date, if not lifted
+		$string .= '<tr><td class="l">Expires:</td><td>'
+		         . getTime($ban->{lifted})->strftime('%Y-%m-%d %H:%M:%S')
+				 . '</td></tr>' if(!$ban->{lifted_by} && $ban->{lifted} > time());
+	# Expired / Lifted date, if expired or lifted
+		$string .= '<tr><td class="l">'
+		         . ($ban->{lifted_by} ? 'Expired:' : 'Lifted:')
+		         . '</td><td>'
+		         . getTime($ban->{lifted})->strftime('%Y-%m-%d %H:%M:%S')
+				 . '</td></tr>' if(($ban->{lifted} < time()) || $ban->{lifted_by});
+	# Lifted guard name, if lifted
+		$string .= '<tr><td class="l">Lifted By:</td><td>' . $ban->{lifted_by} . '</td></tr>' if $ban->{lifted_by};
+	# Cleared date, if cleared
+		$string .= '<tr><td class="l">Cleared:</td><td>'
+		         . getTime($ban->{cleared})->strftime('%Y-%m-%d %H:%M:%S')
+				 . '</td></tr>' if $ban->{cleared};
+	# Cleared guard name, if cleared
+		$string .= '<tr><td class="l">Cleared By:</td><td>' . $ban->{cleared_by} . '</td></tr>' if $ban->{cleared_by};
+		$ban_html[scalar @ban_html] = $string;
 	} # end foreach
-
-	my $string = join('<hr width="50%" />', @active_bans);
-	$string = '<br />(none)' if(!$string);
-
-	return $string;
-} # end banize
+	return '<table class="banlist">'
+	     . join('<tr class="breaker"><td colspan="2"></td></tr>', @ban_html)
+		 . '</table>';
+} # end createBanListHTML
 
 
-# Exit cleanly.  Note: Unlike the version in the chat script, we do NOT write out session data!
+# Cleanly exit, emitting the response and saving the user's session
 	sub Exit {
+		$session->markActive();
+		$response->output() if $response->canOutput();
 		exit(0);
 	} # end Exit

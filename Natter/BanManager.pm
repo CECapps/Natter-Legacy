@@ -35,7 +35,7 @@ package Natter::BanManager;
 
 
 # Return the database handle
-	sub db { return \$_[0]->{db}; }
+	sub db { return $_[0]->{db}; }
 
 
 # Add a session ban
@@ -46,10 +46,13 @@ package Natter::BanManager;
 		my $created_by = shift;
 		my $reason = shift;
 	# Load up the session
-		my $session = new Session()->retrieve($session_id);
-		return if(!$session);
+		my $ban_session = new Natter::Session();
+		my $session_loaded = $ban_session->retrieve($session_id);
+		#use Data::Dumper;
+		#die Dumper $ban_session;
+		return if(!$session_loaded);
 	# Tell the session it's been banned
-		$session->ban($created_by, $duration, $reason);
+		$ban_session->ban($created_by, $duration, $reason);
 	# Record the ban in the log
 		$self->db->do('
 				INSERT INTO session_bans(session_id, created, duration, lifted, created_by, reason)
@@ -138,6 +141,7 @@ package Natter::BanManager;
 	sub checkIPBan {
 		my $self = shift if(scalar @_ == 2);
 		my $ip_address = shift if(scalar @_ == 1);
+		$ip_address ||= '127.0.0.1';
 		my $db = $self ? $self->db() : main::getDBHandle();
 	# Now, where were we?
 		my @ip = split /\./, $ip_address;
@@ -157,5 +161,31 @@ package Natter::BanManager;
 			time()
 		);
 	} # end checkIPBan
+
+
+# Get a list of all bans as an arrayref
+	sub getBanList {
+		my $self = shift;
+	# Grab the *entire* ban list at once.
+		my $sth = $self->db->prepare('
+			SELECT id, ip as token, "ip" as token_type,
+				   reason, created, duration, lifted, cleared, created_by, lifted_by, cleared_by
+			  FROM ip_bans
+		UNION -- this breaks under normal databases, heh, heh
+			SELECT id, session_id as token, "session" as token_type,
+				   reason, created, duration, lifted, cleared, created_by, lifted_by, cleared_by
+			  FROM session_bans
+			 ORDER BY created DESC
+		');
+		my $res = $sth->execute();
+		my @results;
+	# Mutter mutter, why is there no selectall_arrayofhashrefs?
+		while(my $row = $sth->fetchrow_hashref()) {
+			$results[scalar @results] = $row;
+		} # end while
+		$sth->finish();
+	# Refs are fun.
+		return \@results;
+	} # end getBanList
 
 1;

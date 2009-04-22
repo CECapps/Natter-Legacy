@@ -21,8 +21,11 @@ package Natter::HTTP_Request;
 	use warnings;
 
 	sub new { return bless({}, shift) }
-	sub getParams { return scalar $main::cgi->Vars(); }
+	sub getParams { return $main::cgi->Vars(); }
 	sub getHeader { return $main::cgi->http($_[1]); }
+	sub getCookie { return $main::cgi->cookie($_[1]); }
 # This is technically wrong, but we don't care about HEAD, PUT, etc.
 	sub isGet { return $main::cgi->request_method() ne 'POST'; }
 	sub isPost { return $main::cgi->request_method() eq 'POST'; }
+
+1;

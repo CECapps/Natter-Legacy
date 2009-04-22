@@ -47,6 +47,7 @@ package Natter::Session;
 			sanity			=> undef,
 			kick_by			=> undef,
 			kick_reason		=> undef,
+			guard			=> undef,
 		};
 		$self->recreateId();
 	} # end create
@@ -120,7 +121,7 @@ package Natter::Session;
 			my $old_sessions = $self->db->selectcol_arrayref('SELECT id FROM sessions WHERE updated < ?', undef, time() - (60 * 60 * 12));
 			if(scalar @$old_sessions) {
 				$self->db->do('DELETE FROM sessions WHERE id IN(?)', undef, $old_sessions);
-				$self->db->do('UPDATE session_bans SET session_id = NULL WHERE session_id = IN(?)', undef, $old_sessions);
+				$self->db->do('UPDATE session_bans SET session_id = NULL WHERE session_id IN(?)', undef, $old_sessions);
 			# Another 10% chance to clean up the database file
 				$self->db->do('VACUUM') if(int(rand(10)) == 5);
 			} # end if

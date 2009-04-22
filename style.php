@@ -140,6 +140,10 @@
 		color: {$style['TextColor']};
 		font-family : verdana, arial, sans-serif;
 	}
+	.button {
+		cursor: hand;
+		cursor: pointer;
+	}
 	.textbox {
 		width: 145px;
 	}
@@ -208,8 +212,8 @@
 	#banopttable .textbox {
 		width: 122px;
 	}
-	#banrefreshbtn, #bankickbtn {
-		width: 174px;
+	#banrefreshbtn, #banrefreshbtn_top, #bankickbtn {
+		width: 172px;
 	}
 /* Guard page: List of active and lifted bans */
 	.bannedstart {
@@ -224,6 +228,18 @@
 	.bannedlifted {
 		color: {$style['BanLiftColor']};
 		font-style: italic;
+	}
+/* Guard page: List of bans */
+	.banlist {
+		width: 174px !important;
+		font-size: 80%;
+		border-collapse: collapse;
+	}
+	.banlist .l {
+		text-align: right;
+	}
+	.banlist th {
+		border-top: 1px solid {$style['HRColor']};
 	}
 
 THESTYLESHEET;
