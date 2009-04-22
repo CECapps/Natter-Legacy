@@ -19,10 +19,10 @@ Date: April 20, 2009
     - Session bans are now limited to 12 hours in length.
     - Lifted, cleared bans are no longer deleted from the ban log.  They may now
       be viewed by using links on the ban log page.
- - Overhauled the HTML generation code.
-	- Script output is now done through a single channel, with extra informative
-	  HTTP headers.  This may help eliminate the "the server is telling me to
-	  download chat3.cgi" problem.
+ - Refactored the internal script structures.  Script output is now done through
+   a single established code path.  Output is now accompanied with extra
+   informative HTTP headers.  This may help eliminate the "the server is telling
+   me to download chat3.cgi" problem.
  - Bot and Proxy behavior may be impacted by this update.
     - The cookie changes may throw off code behavior.  If you have been looking
 	  for and setting the individual "sanity", "COPPA", and "password" cookies,

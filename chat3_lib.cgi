@@ -29,7 +29,7 @@ our $VERSION_TAG = '"Ingress"';
 		my $include_copyright = shift;
 		my $version_number = $VERSION;
 		$version_number .= " <i>$VERSION_TAG</i>" if($VERSION_TAG);
-		my $dt = &getTime();
+		my $dt = getTime();
 		my $current_year = $dt->year;
 		return qq~<a href="http://natter.pleh.net/" target="_blank">Powered by Natter $version_number</a>~ . ($include_copyright ? qq~<br />Copyright 1999-$current_year Charles Capps~ : '');
 	} # end createPoweredBy
@@ -52,7 +52,7 @@ our $VERSION_TAG = '"Ingress"';
 		my $dbfile = $config->{DBFile};
 		$dbh = DBI->connect("dbi:SQLite:dbname=$dbfile", '', '', { RaiseError => 1 , AutoCommit => 1 }) || die "$! / $@ ($dbfile): $DBI::errstr";
 		#$dbh->trace(2);
-		&upgradeDatabase();
+		upgradeDatabase();
 		return $dbh;
 	} # end getDBHandle
 
@@ -62,9 +62,9 @@ our $VERSION_TAG = '"Ingress"';
 	# Creation first.  These table definitions should not be changed once in
 	# production.  Any future changes should be through alters, to be taken care
 	# of by this subroutine and what it calls.
-		&createTables();
+		createTables();
 	# Now, what's our database version?
-		my $version = $dbh->selectrow_array('SELECT MAX(version) FROM db_version LIMIT 1');
+		my ($version,) = $dbh->selectrow_array('SELECT MAX(version) FROM db_version LIMIT 1');
 	# If the database is unversioned, it's version 1.  This won't happen in production.
 		if(!$version) {
 			$version = 1;
@@ -77,7 +77,7 @@ our $VERSION_TAG = '"Ingress"';
 		};
 	# Go through the list, skipping upgrades that aren't needed.
 		foreach my $upgrade_version (sort { $a <=> $b } keys %$version_upgrade) {
-			next if($upgrade_version < $version);
+			next if($upgrade_version <= $version);
 			$version_upgrade->{$upgrade_version}->();
 			$dbh->do('INSERT INTO db_version(version) VALUES(?)', undef, $upgrade_version);
 		} # end foreach
@@ -163,7 +163,7 @@ our $VERSION_TAG = '"Ingress"';
 # been configured.  This is due to the configuration file not being properly
 # updatable in new configs, and a lack of a control panel thing.
 	sub getConfigPlusDefaults {
-		$config = &getConfig;
+		$config = &getConfig();
 	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
 	# Only reset the COPPA age if it actually has not been defined.
@@ -261,7 +261,7 @@ our $VERSION_TAG = '"Ingress"';
 # Open a file (read-only) and return the file handle
 	sub openFile {
 		if((-e $_[0]) && (-s $_[0])) {
-			my $filehandle = &makeGlob;
+			my $filehandle = makeGlob();
 			open($filehandle, "<$_[0]") or die "$! opening $_[0]";
 			flock($filehandle, LOCK_SH) or die "$! SHlocking $_[0]";
 			my $string = join("", <$filehandle>);
@@ -274,7 +274,7 @@ our $VERSION_TAG = '"Ingress"';
 # Open a file (read-write) and return the file handle.
 	sub openFileRW {
 		if((-e $_[0]) && (-s $_[0])) {
-			my $filehandle = &makeGlob;
+			my $filehandle = makeGlob();
 			open($filehandle, "+<$_[0]") or die "$! opening $_[0]";
 			flock($filehandle, LOCK_EX) or die "$! EXlocking $_[0]";
 			return $filehandle;
@@ -286,7 +286,7 @@ our $VERSION_TAG = '"Ingress"';
 
 # Open a file in append mode
 	sub openFileAppend {
-		my $filehandle = &makeGlob;
+		my $filehandle = makeGlob();
 		my $isnew = (-e $_[0] ? 0 : 1);
 		open($filehandle, ">>$_[0]") or die "$! opening $_[0]";
 		flock($filehandle, LOCK_EX) or die "$! EXlocking $_[0]";
@@ -323,7 +323,7 @@ our $VERSION_TAG = '"Ingress"';
 	sub standardHTML {
 		my $text;
 	# If we received a hash of options, it's a complex message.
-		my $pbstring = &createPoweredBy();
+		my $pbstring = createPoweredBy();
 		if(ref($_[0]) =~ m/HASH/) {
 			my $ifoot = ( $_[0]->{footer} ne "" ? "<br />" : "" );
 			my $powered_by = ( !exists $_[0]->{no_powered} ? qq~<p class="copy">$pbstring</p>~: "" );
@@ -356,9 +356,11 @@ STANDARDhtml
 
 	sub standardHTMLForErrors {
 		my $html = standardHTML(@_);
-		if(defined $response && ref $response =~ /Natter::HTTP_Response/) {
-			$response->setBody(standardHTML(@_));
+		if(defined $response && ref $response =~ /Natter::HTTP_Response/ && $response->canOutput()) {
+		# If we can, use the HTTP response already being built...
+			$response->setBody($html);
 		} else {
+		# Otherwise, emit the HTML directly.
 			print CGI::header();
 			print $html;
 		} # end if
@@ -445,7 +447,7 @@ STANDARDhtml
 # Get a name back from a color code
 	sub getColorName {
 		my $hex = lc(shift);
-		&generateReverseColorMap() if(!defined $reverse_color_map);
+		generateReverseColorMap() if(!defined $reverse_color_map);
 		return defined $reverse_color_map->{$hex} ? $reverse_color_map->{$hex} : $hex;
 	} # end getColorName
 

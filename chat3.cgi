@@ -14,13 +14,8 @@
 #
 # Questions?  Comments?  <capps@solareclipse.net>
 
-# This code is unhealthy and was designed ten years ago.  I apologize for the
-# insanity.  Please forgive me?
-
 use lib('.', './ext');
 use strict;
-no strict("subs");	# :-P
-no strict("refs");	# :-P x2
 use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
@@ -33,8 +28,8 @@ require "chat3_lib.cgi";
 	set_message(\&standardHTMLForErrors);
 
 # Pull in our configuration information
-	&evalFile("./config.cgi");
-	(defined &getConfig) ? (our $config = &getConfigPlusDefaults) : (die("I can't seem to find my configuration.\n"));
+	evalFile("./config.cgi");
+	(defined &getConfig) ? (our $config = getConfigPlusDefaults()) : (die("I can't seem to find my configuration.\n"));
 
 # Fire up the HTTP Request...
 	our $cgi = new CGI;
@@ -71,15 +66,17 @@ require "chat3_lib.cgi";
 	} # end if
 
 # Engage the global file lock
-	our $LOCKFILE = &makeGlob;
-	&lockAndLoad;
+	our $LOCKFILE = makeGlob();
+	lockAndLoad();
 
 # This code was designed when the COPPA law was interpreted more striclty than
 # it was now.  The minimum entry age can be dictated in the config, or disabled.
-	&checkCOPPAToken;
+# If the user flagged themselves as underage, stop right here.
+	noEntry_COPPA() if(exists $session->{data}->{COPPA} && $session->{data}->{COPPA} eq "under");
 
-# Make sure user isn't banned or kicked
-	&checkKickBanToken;
+# If the user has been kicked or banned, stop right here.
+	my $ban_duration = $session->isBanned();
+	noEntry_KickBan($ban_duration, $session->{data}->{kick_reason}) if($ban_duration);
 
 # No bogus actions, please
 	if((!exists $in{action}) || ($in{action} eq "")) {
@@ -119,16 +116,23 @@ require "chat3_lib.cgi";
 
 # If passwords are enabled, prompt the user to enter one
 	sub action_password_prompt {
-	# No sanity flag needed
+	# Check the session, is the user already OK?
+		if(!$config->{ChatPassword} || $session->{data}->{password} eq $config->{ChatPassword}) {
+			action_intro();
+			return;
+		} # end if
+	# Otherwise, check to see if their IP has had too many tries.  Yes, this
+	# is done outside the realm of the session, to try and fight off brute-force
+	# cracking attempts.  Not that I seriously expect this to be a real problem.
 		my $dbh = getDBHandle();
-		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
+		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, currentIP());
 		my $tries = $record->[0] + 0;
 		my $last_try = $record->[1] + 0;
 	# Reset their tries after half an hour
 		my $now = time();
 		$tries = 0 if($last_try < $now - (60 * 30));
 	# Too many tries?  No entry for you.
-		&noEntry_TooManyTries() if($tries >= $config->{PasswordAttempts});
+		noEntry_TooManyTries() if($tries >= $config->{PasswordAttempts});
 	# How many tries are left?
 		my $tries_left = $config->{PasswordAttempts} - $tries;
 		my $tries_wording = $tries_left == $config->{PasswordAttempts} ? '' : "You have <b>$tries_left</b> tries remaining.";
@@ -155,24 +159,24 @@ PASSWORD_PROMPT
 
 # If passwords are enabled and the user provided one, check it
 	sub action_password_check {
-	# No sanity flag needed.
+	# No session check here.
 		my $dbh = getDBHandle();
-		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, &currentIP());
+		my $record = $dbh->selectrow_arrayref('SELECT tries, last_try FROM floodcheck WHERE ip = ?', undef, currentIP());
 		my $tries = $record->[0];
 		my $last_try = $record->[1];
 		my $now = time();
 	# Is this their first try?
 		if(!$tries) {
-			$dbh->do('INSERT OR IGNORE INTO floodcheck(tries, last_try, ip) VALUES(0, ?, ?)', undef, $now, &currentIP());
+			$dbh->do('INSERT OR IGNORE INTO floodcheck(tries, last_try, ip) VALUES(0, ?, ?)', undef, $now, currentIP());
 		} # end if
-		&noEntry_TooManyTries() if($tries > $config->{PasswordAttempts});
+		noEntry_TooManyTries() if($tries > $config->{PasswordAttempts});
 	# Did they enter the proper password?  If so, intro'em.
 		if($tries <= $config->{PasswordAttempts} && $in{'password'} eq $config->{ChatPassword}) {
 			$session->{data}->{password} = $config->{ChatPassword};
-			return &action_intro();
+			return action_intro();
 		} # end if
 	# It must be a failure.
-		$dbh->do('UPDATE floodcheck SET tries = tries + 1, last_try = ? WHERE ip = ?', undef, $now, &currentIP());
+		$dbh->do('UPDATE floodcheck SET tries = tries + 1, last_try = ? WHERE ip = ?', undef, $now, currentIP());
 		$response->appendBody(standardHTML({
 			header => 'Wrong Password',
 			body => qq~<br />Wrong password, no cookie!  <a href="$config->{ScriptName}?action=password_prompt">Try again?</a>~,
@@ -182,17 +186,17 @@ PASSWORD_PROMPT
 
 # Say hi to the user, ask them to indicate their age
 	sub action_intro {
-	# Set a sanity token for later checking.
+	# Set a sanity token for later checking -- this ensures that the user accepts cookies
 		$session->{data}->{sanity} = 1;
 	# Check for the passwordy bits
-		&checkPassword;
+		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
 	# If they've already done the age check, throw them at the post form.
 		if($session->{data}->{COPPA} eq 'over') {
 			$response->addHeader('Status', '302 Found');
 			$response->addHeader('Location', $config->{ScriptName} . '?action=post');
 			&Exit();
 		} # end if
-	# Produce the form
+	# Otherwise, prompt them for the required age check
 		if($config->{COPPAAge}) {
 			$response->appendBody(standardHTML({
 				header => "Welcome to $config->{ChatName}",
@@ -226,9 +230,9 @@ COPPA_CHECK
 # Make sure the user is the correct age for the chat
 	sub action_coppa {
 	# Check for the sanity session flag
-		&checkSanityToken;
+		noEntry_Insane() unless $session->{data}->{sanity} == 1;
 	# Check for the passwordy bits
-		&checkPassword;
+		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
 	# If they forged the form, they're underage
 		my $this = ($in{check} =~ m/^(over|under)$/ ? $in{check} : "under" );
 	# If they're underage, kick'em out.
@@ -251,32 +255,30 @@ COPPA_CHECK
 # Post a new message / retrieve the posting form
 	sub action_post {
 	# Make sure they went through the intro and are accepting cookies
-		&checkSanityToken;
-	# Determine if the user has been banned
-		&decideBannage;
+		noEntry_Insane() unless $session->{data}->{sanity} == 1;
 	# Check for the passwordy bits
-		&checkPassword;
+		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
 	# If the user posted a message, add it
 		my $added_chat_message;
 		if(exists $in{'username'}) {
-			my %data = &formatInput;
+			my %data = formatInput();
 			%in = %data;
-			my $log_line = &updateMessages;
+			my $log_line = updateMessages();
 			$added_chat_message = $log_line ? 1 : 0;
-			&updateLog($log_line);
+			updateLog($log_line);
 		} # end if
 	# If the user should post a entrance line, add it now
 		if(!$added_chat_message && defined $in{special} && $in{special} eq "entrance") {
-			my $log_line = &updateMessages;
+			my $log_line = updateMessages();
 			$added_chat_message = $log_line ? 1 : 0;
-			&updateLog($log_line);
+			updateLog($log_line);
 		} # end if
 	# Update the guard/ban list of users
-		&updatePostlog if $added_chat_message;
+		updatePostlog() if $added_chat_message;
 	# Feed the form back to them
 		$response->appendBody(standardHTML({
 			header => "",
-			body => &generatePostForm,
+			body => generatePostForm(),
 			footer => "",
 			no_powered => 1,
 		}));
@@ -302,12 +304,12 @@ COPPA_CHECK
 		} # end foreach
 
 	# HTMLize username and message
-		$filter{'username'} = &formatHTML($in{'username'}, {a => 1, autolink => 1});
-		$filter{'message'} = &formatHTML($in{'message'});
-		$filter{'caption'} = &formatHTML($in{'caption'});
+		$filter{'username'} = formatHTML($in{'username'}, {a => 1, autolink => 1});
+		$filter{'message'} = formatHTML($in{'message'});
+		$filter{'caption'} = formatHTML($in{'caption'});
 
 	# Process markup in message
-		$filter{'message'} = &formatMarkup($filter{'message'});
+		$filter{'message'} = formatMarkup($filter{'message'});
 
 	# Filters for URL
 		if($filter{'url'} ne "URL") {
@@ -323,7 +325,7 @@ COPPA_CHECK
 	# Filters for colors
 		foreach (qw(color mcolor)) {
 			$filter{$_} = '' if($filter{$_} eq 'Message Color');
-			$filter{$_} = &fix_color($filter{$_});
+			$filter{$_} = fix_color($filter{$_});
 			$filter{$_} = '' if($filter{$_} eq "#");
 		} # end foreach
 		$filter{'color'} = 'white' if(!$filter{'color'} || $filter{'color'} eq '');
@@ -357,16 +359,16 @@ COPPA_CHECK
 		} # end foreach
 
 	# Convert <font>
-		$value = &formatHTMLfont($value) unless $flags->{font};
+		$value = formatHTMLfont($value) unless $flags->{font};
 
 	# Autolink
-		$value = &formatHTMLautolink($value) unless $flags->{autolink};
+		$value = formatHTMLautolink($value) unless $flags->{autolink};
 
 	# Convert <a>
-		$value = &formatHTMLa($value) unless $flags->{a};
+		$value = formatHTMLa($value) unless $flags->{a};
 
 	# Convert <span style="">
-		$value = &formatHTMLspan($value) unless $flags->{span};
+		$value = formatHTMLspan($value) unless $flags->{span};
 
 	# try to fix color monger idiocy
 		$value =~ s!\&lt\;\/u>\&lt\;\/s>(\<\/i>)?(\<\/b>)?\&lt\;\/font>\&lt\;\/font>\&lt\;\/font>!$1$2!g;
@@ -424,6 +426,7 @@ COPPA_CHECK
 		$value =~ s!&lt;span[^>]*style=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span style="$1">$2</span>!gis;
 		$value =~ s!&lt;span[^>]*class=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span class="$1">$2</span>!gis;
 		$value =~ s!&lt;span[^>]*id=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span id="$1">$2</span>!gis;
+		$value =~ s!&lt;span[^>]*title=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span title="$1">$2</span>!gis;
 
 		return $value;
 	} # end formatHTMLspan
@@ -478,8 +481,8 @@ COPPA_CHECK
 	# Fields are labled by replacing the value with the label when there's no value
 		$clone{'username'} = $in{username} || "Name";
 		$clone{'url'} = CGI::escapeHTML($clone{'url'}) || "URL";
-		$clone{'mcolor'} = CGI::escapeHTML(&getColorName($clone{'mcolor'})) || "Message Color";
-		$clone{'color'} = CGI::escapeHTML(&getColorName($clone{'color'})) || "white";
+		$clone{'mcolor'} = CGI::escapeHTML(getColorName($clone{'mcolor'})) || "Message Color";
+		$clone{'color'} = CGI::escapeHTML(getColorName($clone{'color'})) || "white";
 	# The caption field replaces the email field, if the caption field is used
 		if($config->{EnableCaptions}) {
 			$clone{'caption'} ||= "Caption";
@@ -636,7 +639,7 @@ WHOSITS
 				$linkhtml .= ( $in{'caption'} ne "E-Mail" ? qq(<a href="mailto:$in{'caption'}" class="email"><font color="$namecolor" face="Wingdings">*</font></a>) : "" );
 			} # end if
 		} # end if
-		my $dt = &getTime();
+		my $dt = getTime();
 		my $timebit = $dt->strftime('%H:%M');
 
 	# Piece together the new message line
@@ -666,7 +669,7 @@ WHOSITS
 	# Reassemble the chat lines
 		push(@lines, qq(<html><head><meta http-equiv="refresh" content="$config->{RefreshRate}"><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white">));
 		push(@lines, @messages);
-		my $powered_by = &createPoweredBy(1);
+		my $powered_by = createPoweredBy(1);
 		push(@lines, qq(<p class="timeline">All times are $config->{TimeZoneName}</p><p class="copy">$powered_by</p></body></html>\n));
 	# Write the file back out
 		seek($fh, 0, 0);
@@ -684,7 +687,7 @@ WHOSITS
 	# Don't log nothing
 		return unless $_[0];
 	# Log files have a specific naming format
-		my $dt = &getTime();
+		my $dt = getTime();
 		my $timestring = $dt->strftime('%Y-%m-%d-%H');
 		my($fh, $isnew) = openFileAppend($config->{LogsPath} . "/" . $config->{MessagesFN} . "-$timestring" . $config->{MessagesFX});
 	# If we're the first new line in the log, add a proper HTML header
@@ -693,7 +696,7 @@ WHOSITS
 			print $fh qq(<html><head><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white"> Log started: $new_timestamp<br /><br /> \n);
 		} # end if
 	# IP address?  I see no IP address here.  What are you talking about?
-		print $fh "$_[0]<!-- " . &currentIP . " -->\n";
+		print $fh "$_[0]<!-- " . currentIP() . " -->\n";
 		close($fh);
 	} # end updateLog
 
@@ -711,7 +714,7 @@ WHOSITS
 		$msgcolor = $namecolor unless $msgcolor;
 	# Which user are we?
 		my $sesid = $session->{id};
-		my $ip = &currentIP;
+		my $ip = currentIP();
 
 	# time() -> UTC, so it's OK here
 		my $timer = time();
@@ -742,44 +745,7 @@ WHOSITS
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# Sanity checking subroutines and error messages
-
-# Make sure the user didn't fail the COPPA check.
-	sub checkCOPPAToken {
-	# But don't check if COPPA checking is disabled
-		return if(!$config->{COPPAAge});
-		my $coppa = $session->{data}->{COPPA};
-	# If the user hasn't been prompted, skip the check.
-		return if(!$coppa);
-	# If the user has passed the check, skip
-		return if($coppa eq "over");
-	# If the user is underage, bail.
-		noEntry_COPPA() if($coppa eq "under");
-	} # end checkCOPPAToken
-
-
-# Check to see if the user has been banned.
-	sub checkKickBanToken {
-		my $is_banned = $session->isBanned();
-		return if(!$is_banned);
-		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
-	} # end checkKickBanToken
-
-
-# Check that the session we're processing has gone through the intro process,
-# i.e. that the user is accepting cookies.
-	sub checkSanityToken {
-		noEntry_Insane() unless $session->{data}->{sanity} == 1;
-	} # end checkSanityToken
-
-
-# Check to see if the user has the password token
-	sub checkPassword {
-		return if !$config->{ChatPassword};
-		noEntry_MissingPassword() if($session->{data}->{password} ne $config->{ChatPassword});
-		return;
-	} # end checkPassword
-
+# List of likely error messages
 
 # Complain that the user has tried the wrong password too many times.
 	sub noEntry_TooManyTries {
@@ -796,7 +762,7 @@ WHOSITS
 	sub noEntry_MissingPassword {
 		$response->appendBody(standardHTML({
 			header => "Missing Password",
-			body => "Your browser did not send the proper password.  You'll need to re-enter the chat, sorry.",
+			body => "You don't seem to know the password.  You'll need to re-enter the chat, sorry.",
 			footer => "",
 		}));
 		&Exit();
@@ -821,10 +787,11 @@ WHOSITS
 			$response->addHeader('Status', '302 Found');
 			$response->addHeader('Location', $config->{BannedRedirect});
 		} # end if
+		my $pretty = getTime($_[0])->strftime('%Y-%m-%d %H:%M:%S');
 	# Otherwise / in addition, let's let the user know that they're banned
 		$response->appendBody(standardHTML({
 			header => "Kicked or Banned",
-			body => "Sorry, you have been kicked or banned from this chat room for $_[0] minutes.<br />The reason for this kick or ban is: $_[1].",
+			body => "Sorry, you have been kicked or banned from this chat room until $pretty.<br />The reason for this kick or ban is: $_[1].",
 			footer => ($config->{BannedRedirect} ? qq~<script type="text/javascript">location.href='$config->{BannedRedirect}';</script>~ : ''),
 		}));
 		&Exit();
@@ -840,11 +807,3 @@ WHOSITS
 		}));
 		&Exit();
 	} # end noEntry_COPPA
-
-
-# Determine if a user is kicked or banned.  If so, the user is notified
-	sub decideBannage {
-		my $is_banned = $session->isBanned();
-		return if(!$is_banned);
-		noEntry_KickBan($is_banned, $session->{data}->{kick_reason});
-	} # end sub

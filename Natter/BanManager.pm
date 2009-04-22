@@ -119,6 +119,34 @@ package Natter::BanManager;
 	} # end liftIPBan
 
 
+# Lift a Session ban (by id)
+	sub liftSessionBan {
+		my $self = shift;
+		my $ban_id = shift;
+		my $lifted_by = shift;
+		$self->db->do('
+			UPDATE session_bans
+			   SET lifted_by = ?,
+			       lifted = ?
+			 WHERE id = ?
+			',
+			undef,
+			$lifted_by,
+			time() - 1,
+			$ban_id
+			);
+	# Now, here's the fun part.  Does that ban still have a valid session id?
+		my ($session_id,) = $self->db->selectrow_array('SELECT session_id FROM session_bans WHERE id = ?', undef, $ban_id);
+		if($session_id) {
+		# Yes, it does.  Pull up the session...
+			my $banned_session = new Natter::Session();
+			my $loaded = $banned_session->retrieve($session_id);
+		# Now, if we can, unban it for real.
+			$banned_session->unban() if($loaded);
+		} # end if
+	} # end liftSessionBan
+
+
 # Clear an IP ban from the list (by id)
 	sub clearIPBan {
 		my $self = shift;
@@ -131,9 +159,30 @@ package Natter::BanManager;
 			 WHERE id = ?
 			',
 			undef,
+			$cleared_by,
+			time() - 1,
 			$ban_id
 		);
 	} # end clearIPBan
+
+
+# Clear a Session ban from the list (by id)
+	sub clearSessionBan {
+		my $self = shift;
+		my $ban_id = shift;
+		my $cleared_by = shift;
+		$self->db->do('
+			UPDATE session_bans
+			   SET cleared_by = ?,
+			       cleared = ?
+			 WHERE id = ?
+			',
+			undef,
+			$cleared_by,
+			time() - 1,
+			$ban_id
+		);
+	} # end clearSessionBan
 
 
 # Check for an IP ban.  This method can be called statically.
