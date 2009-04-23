@@ -216,8 +216,8 @@ package Natter::BanManager;
 	sub getBanList {
 		my $self = shift;
 	# Grab the *entire* ban list at once.
-		my $sth = $self->db->prepare('
-			SELECT id, ip as token, "ip" as token_type,
+		my $sth = $self->db->prepare(q~
+			SELECT id, ip as token, 'ip' as token_type,
 				   reason, created, duration, lifted, cleared, created_by, lifted_by, cleared_by
 			  FROM ip_bans
 		UNION -- this breaks under normal databases, heh, heh
@@ -225,7 +225,7 @@ package Natter::BanManager;
 				   reason, created, duration, lifted, cleared, created_by, lifted_by, cleared_by
 			  FROM session_bans
 			 ORDER BY created DESC
-		');
+		~);
 		my $res = $sth->execute();
 		my @results;
 	# Mutter mutter, why is there no selectall_arrayofhashrefs?

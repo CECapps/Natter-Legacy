@@ -232,11 +232,17 @@
 /* Guard page: List of bans */
 	.banlist {
 		width: 174px !important;
-		font-size: 80%;
+		font-size: 77.5%;
 		border-collapse: collapse;
+	}
+	.banlist td {
+		vertical-align: top;
 	}
 	.banlist .l {
 		text-align: right;
+	}
+	.banlist .t {
+		white-space: nowrap;
 	}
 	.banlist th {
 		border-top: 1px solid {$style['HRColor']};

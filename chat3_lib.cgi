@@ -261,7 +261,7 @@ our $VERSION_TAG = '"Ingress"';
 # Open a file (read-only) and return the file handle
 	sub openFile {
 		if((-e $_[0]) && (-s $_[0])) {
-			my $filehandle = makeGlob();
+			my $filehandle;
 			open($filehandle, "<$_[0]") or die "$! opening $_[0]";
 			flock($filehandle, LOCK_SH) or die "$! SHlocking $_[0]";
 			my $string = join("", <$filehandle>);
@@ -274,7 +274,7 @@ our $VERSION_TAG = '"Ingress"';
 # Open a file (read-write) and return the file handle.
 	sub openFileRW {
 		if((-e $_[0]) && (-s $_[0])) {
-			my $filehandle = makeGlob();
+			my $filehandle;
 			open($filehandle, "+<$_[0]") or die "$! opening $_[0]";
 			flock($filehandle, LOCK_EX) or die "$! EXlocking $_[0]";
 			return $filehandle;
@@ -286,7 +286,7 @@ our $VERSION_TAG = '"Ingress"';
 
 # Open a file in append mode
 	sub openFileAppend {
-		my $filehandle = makeGlob();
+		my $filehandle;
 		my $isnew = (-e $_[0] ? 0 : 1);
 		open($filehandle, ">>$_[0]") or die "$! opening $_[0]";
 		flock($filehandle, LOCK_EX) or die "$! EXlocking $_[0]";
@@ -305,15 +305,9 @@ our $VERSION_TAG = '"Ingress"';
 	} # end randomGenerator
 
 
-# Create a filehandle Perl glob.
-	sub makeGlob {
-		my $x = "FileHandle" . randomGenerator(32);
-		return \*{$x};
-	} # end makeGlob
-
-
 # Establish a global lock file
 	sub lockAndLoad {
+		my $LOCKFILE = shift;
 		open($LOCKFILE, ">$config->{NonCGIPath}/lockfile.cgi") or die "$! opening $config->{NonCGIPath}/lockfile.cgi";
 		flock($LOCKFILE, LOCK_EX) or die "$! EXlocking $config->{NonCGIPath}/lockfile.cgi";
 	} # end lockAndLoad

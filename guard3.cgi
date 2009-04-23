@@ -14,6 +14,7 @@
 #
 # Questions?  Comments?  <capps@solareclipse.net>
 
+use v5.8.0;
 use lib('.', './ext');
 use strict;
 use warnings;
@@ -66,13 +67,11 @@ require "chat3_lib.cgi";
 		} # end if
 	} # end if
 
-# Just to get stuff working...
-	use SessionKeeper;
-	our $sessions = new SessionKeeper({ STOREDIR => $config->{SessionPath} });
-
-# Engage the global file lock
-	our $LOCKFILE = makeGlob();
-	lockAndLoad();
+# Engage the global file lock.  Due to concurrency issues, only one process is
+# permitted to perform actions at once.  This is an intentional restriction due
+# to having to deal with things on-disk.
+	our $LOCKFILE;
+	lockAndLoad($LOCKFILE);
 
 # Make sure we're actually *DOING* something.
 	if((!exists $in{action}) || ($in{action} eq "")) {
@@ -91,7 +90,7 @@ require "chat3_lib.cgi";
 	);
 
 # The user can't do anything at all unless he's logged in.
-	if(!$session->{data}->{guard}) {
+	if(!defined $session->{data}->{guard}) {
 		$in{action} = 'authenticate';
 	} # end if
 
@@ -118,12 +117,13 @@ require "chat3_lib.cgi";
 	sub action_authenticate {
 	# If the user can be authenticated, do so and throw them at the frameset
 		if($request->isPost() && exists $guard_list->{ $in{username} } && $guard_list->{ $in{username} } eq $in{password}) {
+			migrateBans();
 			$session->{data}->{guard} = $in{username};
 			$response->addHeader('Status', '302 Found');
 			$response->addHeader('Location', $config->{GuardScriptName} . '?action=frameset');
 		} # end if
 	# If not, the user will need to be prompted.
-		if(!$session->{data}->{guard}) {
+		if(!defined $session->{data}->{guard}) {
 			my $error = ($request->isPost() || exists $in{username} || exists $in{password})
 						? '<div style="color: red; font-weight: bold; margin: 10px; ">Invalid Credentials</div>'
 						: '';
@@ -529,6 +529,55 @@ $show_cleared
 	} # end action_clear_ban
 
 
+# Migrate bans from the old Storable format
+	sub migrateBans {
+	# Have we already performed the migration?
+		return unless $config->{SessionPath};
+		return if -f $config->{SessionPath} . '/migrated.cgi';
+		return unless -f $config->{SessionPath} . '/ban.cgi';
+	# Okay, let's get ugly.
+		require 'Storable.pm';
+		my $bans = Storable::retrieve($config->{SessionPath} . '/ban.cgi');
+		return unless $bans;
+		return unless ref $bans eq 'HASH';
+		return unless scalar keys %$bans;
+	# It's an actual hash, let's migrate!
+		my $dbh = getDBHandle();
+		my $sth = $dbh->prepare('
+			INSERT INTO ip_bans(ip, reason, created, duration, lifted, created_by, lifted_by)
+						VALUES(?, ?, ?, ?, ?, ?, ?)
+		');
+	# Sort by creation time, newest first
+		foreach my $partial_ip (sort { $bans->{$b}->{STARTTIME} <=> $bans->{$a}->{STARTTIME} } keys %$bans) {
+		# The partial IPs are stored like '123.456.789.' and '123.456.'
+		# We need to add zeros.
+			my $ban_info = $bans->{$partial_ip};
+			my @boom = grep /\d+/, split /\./, $partial_ip;
+			$boom[3] ||= '0';
+			$boom[2] ||= '0';
+			my $full_ip = join '.', @boom;
+		# Can we get a duration?
+			my $start_time = $ban_info->{STARTTIME};
+			my $end_time = $ban_info->{TIME};
+			my $duration = $end_time - $start_time;
+		# Note: This duration will be bogus if the ban has been lifted.
+			$sth->execute(
+				$full_ip,
+				($ban_info->{FOR} || '(no reason provided)'),
+				$start_time,
+				$duration,
+				$end_time,
+				$ban_info->{BY},
+				(exists $ban_info->{LIFTEDBY} ? $ban_info->{LIFTEDBY} : undef)
+			);
+			$sth->finish();
+		} # end foreach
+	# Mark the bans as migrated.
+		my ($fh,) = openFileAppend($config->{SessionPath} . '/migrated.cgi');
+		print $fh time() . "\n";
+		close $fh;
+	} # end migrateBans
+
 # Create the HTML for the banned user list
 	sub createBanListHTML {
 		my @bans = @_;
@@ -552,22 +601,22 @@ $show_cleared
 			#	cleared_by		=> '',
 			#}
 		# What a mess.  Ban header
-			my $string = '<tr><th>'
-					 . ($ban->{token_type} eq 'ip' ? 'IP ' : 'S&nbsp;')
+			my $string = '<tr><th colspan="2" align="left">'
+					 . ($ban->{token_type} eq 'ip' ? 'IP Ban #' : 'Sess Ban #')
 					 . $ban->{id}
-					 . '</th><th>By '
+					 . ', by '
 					 . $ban->{created_by}
 					 . '</th></tr>';
 		# Created timestamp
-			$string .= '<tr><td class="l">Created:</td><td>'
+			$string .= '<tr><td class="l">Created:</td><td class="t">'
 					 . getTime($ban->{created})->strftime('%Y-%m-%d %H:%M:%S')
 					 . '</td></tr>';
 		# IP address, if an IP ban
-			$string .= qq!<tr><td class="l">IP:</td><td>$ban->{token}</td></tr>! if $ban->{token_type} eq 'ip';
+			$string .= qq!<tr><td class="l">IP:</td><td><b>$ban->{token}</b></td></tr>! if $ban->{token_type} eq 'ip';
 		# Reason
 			$string .= qq!<tr><td class="l">Reason:</td><td>$ban->{reason}</td></tr>!;
 		# Expires date, if not lifted
-			$string .= '<tr><td class="l">Expires:</td><td>'
+			$string .= '<tr><td class="l">Expires:</td><td class="t">'
 					 . getTime($ban->{lifted})->strftime('%Y-%m-%d %H:%M:%S')
 					 . '</td></tr>' if(!$ban->{lifted_by} && $ban->{lifted} > time());
 		# Lift link.
@@ -581,7 +630,7 @@ $show_cleared
 		# Expired / Lifted date, if expired or lifted
 			$string .= '<tr><td class="l">'
 					 . ($ban->{lifted_by} ? 'Lifted:' : 'Expired:')
-					 . '</td><td>'
+					 . '</td><td class="t">'
 					 . getTime($ban->{lifted})->strftime('%Y-%m-%d %H:%M:%S')
 					 . '</td></tr>' if(($ban->{lifted} < time()) || $ban->{lifted_by});
 		# Lifted guard name, if lifted
@@ -597,7 +646,7 @@ $show_cleared
 					 . ($ban->{lifted_by} ? 'Lifted' : 'Expired')
 					 . ' Ban</a></td></tr>' if((($ban->{lifted} < time()) || $ban->{lifted_by}) && !$ban->{cleared_by});
 		# Cleared date, if cleared
-			$string .= '<tr><td class="l">Cleared:</td><td>'
+			$string .= '<tr><td class="l">Cleared:</td><td class="t">'
 					 . getTime($ban->{cleared})->strftime('%Y-%m-%d %H:%M:%S')
 					 . '</td></tr>' if $ban->{cleared};
 		# Cleared guard name, if cleared

@@ -3,8 +3,17 @@ Natter Changelog
 Version: 4.10.0
 Codename: Ingress
 Date: April 20, 2009
+ - Natter now requires Perl 5.8.  Nobody should realistically be running
+   anything older than that in production.  Seriously, folks, upgrade.
+ - The list of required non-standard Perl modules is now:
+	- DateTime
+	- DBI
+	- DBD::SQLite
+ - Natter now bundles the JSON Perl module from CPAN and uses JSON::PP.  This
+   would be done with the others, however those require platform-specific binary
+   modules.  While DBI::PP exists, DBD::SQLite::PP doesn't.  Thank goodness.
  - Massively overhauled the session system.
-    - Now uses DBI and DBD::SQLite to store sessions.
+    - Now uses an SQLite database to store sessions.
     - Sessions can not be migrated.  Users will be kicked out after the upgrade
       and must re-enter the chat password and re-COPPA-ize.  Don't upgrade when
       people are using the chat, and they'll never notice.
@@ -13,7 +22,7 @@ Date: April 20, 2009
     - All previous cookies have been retired in favor of the session cookie.
     - Bots and Proxies may be impacted.  See notes below.
  - Massively overhauled the ban system.
-    - Now uses DBI and DBD::SQLite to store bans.
+    - Now uses an SQLite database to store bans.
     - Migration of old bans will occur on the first login to the guard frameset.
     - Session bans are now recorded in the ban logs.
     - Session bans are now limited to 12 hours in length.

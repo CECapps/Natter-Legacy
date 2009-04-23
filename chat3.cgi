@@ -14,6 +14,7 @@
 #
 # Questions?  Comments?  <capps@solareclipse.net>
 
+use v5.8.0;
 use lib('.', './ext');
 use strict;
 use warnings;
@@ -65,14 +66,16 @@ require "chat3_lib.cgi";
 		} # end if
 	} # end if
 
-# Engage the global file lock
-	our $LOCKFILE = makeGlob();
-	lockAndLoad();
+# Engage the global file lock.  Due to concurrency issues, only one process is
+# permitted to perform actions at once.  This is an intentional restriction due
+# to having to deal with things on-disk.
+	our $LOCKFILE;
+	lockAndLoad($LOCKFILE);
 
 # This code was designed when the COPPA law was interpreted more striclty than
 # it was now.  The minimum entry age can be dictated in the config, or disabled.
 # If the user flagged themselves as underage, stop right here.
-	noEntry_COPPA() if(exists $session->{data}->{COPPA} && $session->{data}->{COPPA} eq "under");
+	noEntry_COPPA() if(defined $session->{data}->{COPPA} && $session->{data}->{COPPA} eq "under");
 
 # If the user has been kicked or banned, stop right here.
 	my $ban_duration = $session->isBanned();
@@ -117,7 +120,7 @@ require "chat3_lib.cgi";
 # If passwords are enabled, prompt the user to enter one
 	sub action_password_prompt {
 	# Check the session, is the user already OK?
-		if(!$config->{ChatPassword} || $session->{data}->{password} eq $config->{ChatPassword}) {
+		if(!$config->{ChatPassword} || (defined $session->{data}->{password} && $session->{data}->{password} eq $config->{ChatPassword})) {
 			action_intro();
 			return;
 		} # end if
@@ -189,9 +192,9 @@ PASSWORD_PROMPT
 	# Set a sanity token for later checking -- this ensures that the user accepts cookies
 		$session->{data}->{sanity} = 1;
 	# Check for the passwordy bits
-		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
+		noEntry_MissingPassword() if($config->{ChatPassword} && (!defined $session->{data}->{password} || $session->{data}->{password} ne $config->{ChatPassword}));
 	# If they've already done the age check, throw them at the post form.
-		if($session->{data}->{COPPA} eq 'over') {
+		if(defined $session->{data}->{COPPA} && $session->{data}->{COPPA} eq 'over') {
 			$response->addHeader('Status', '302 Found');
 			$response->addHeader('Location', $config->{ScriptName} . '?action=post');
 			&Exit();
@@ -230,9 +233,9 @@ COPPA_CHECK
 # Make sure the user is the correct age for the chat
 	sub action_coppa {
 	# Check for the sanity session flag
-		noEntry_Insane() unless $session->{data}->{sanity} == 1;
+		noEntry_Insane() unless defined $session->{data}->{sanity} && $session->{data}->{sanity} == 1;
 	# Check for the passwordy bits
-		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
+		noEntry_MissingPassword() if($config->{ChatPassword} && (!defined $session->{data}->{password} || $session->{data}->{password} ne $config->{ChatPassword}));
 	# If they forged the form, they're underage
 		my $this = ($in{check} =~ m/^(over|under)$/ ? $in{check} : "under" );
 	# If they're underage, kick'em out.
@@ -254,10 +257,10 @@ COPPA_CHECK
 
 # Post a new message / retrieve the posting form
 	sub action_post {
-	# Make sure they went through the intro and are accepting cookies
-		noEntry_Insane() unless $session->{data}->{sanity} == 1;
+	# Check for the sanity session flag
+		noEntry_Insane() unless defined $session->{data}->{sanity} && $session->{data}->{sanity} == 1;
 	# Check for the passwordy bits
-		noEntry_MissingPassword() if($config->{ChatPassword} && $session->{data}->{password} ne $config->{ChatPassword});
+		noEntry_MissingPassword() if($config->{ChatPassword} && (!defined $session->{data}->{password} || $session->{data}->{password} ne $config->{ChatPassword}));
 	# If the user posted a message, add it
 		my $added_chat_message;
 		if(exists $in{'username'}) {
@@ -622,7 +625,7 @@ WHOSITS
 	# Don't post blank messages
 		return undef if((!defined $raw || $raw eq "") && !$in{special});
 	# Don't post the intro message if the user is an authenticated guard.
-		return undef if exists $in{special} && $session->{data}->{guard};
+		return undef if exists $in{special} && defined $session->{data}->{guard} && $session->{data}->{guard};
 
 	# Piece together the form HTML
 		my $name = ($in{'username'} ne "Name" ? $in{'username'} : " " );
