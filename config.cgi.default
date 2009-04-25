@@ -46,6 +46,7 @@ sub getConfig {
 		BannedRedirect	=> '',
 		ChatPassword	=> '',
 		PasswordAttempts => 3,
+		MultiChat		=> 0,
 	};
 
 # Options based on configurations.  Don't touch this.

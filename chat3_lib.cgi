@@ -20,7 +20,7 @@ use Socket;
 use Digest::MD5;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.10.0';
+our $VERSION = '4.10.1';
 our $VERSION_TAG = '"Ingress"';
 
 
@@ -183,6 +183,8 @@ our $VERSION_TAG = '"Ingress"';
 	# No password.
 		$config->{ChatPassword} ||= '';
 		$config->{PasswordAttempts} ||= 3;
+	# MultiChat is disabled by default
+		$config->{MultiChat} ||= 0;
 		return $config;
 	} # end getConfigPlusDefaults
 

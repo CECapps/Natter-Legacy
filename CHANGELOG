@@ -1,8 +1,13 @@
 Natter Changelog
 
+Version: 4.10.1
+Date: April 24, 2009
+ - MultiChat is finally here!  When enabled, users may switch between sets of
+   post form data without needing to load multiple chat tabs or windows.
+
 Version: 4.10.0
 Codename: Ingress
-Date: April 20, 2009
+Date: April 23, 2009
  - Natter now requires Perl 5.8.  Nobody should realistically be running
    anything older than that in production.  Seriously, folks, upgrade.
  - The list of required non-standard Perl modules is now:

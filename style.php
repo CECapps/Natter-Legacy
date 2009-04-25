@@ -39,6 +39,7 @@
 		'TimeColor' 		=> '#a0a0b0',
 		'HRColor' 			=> '#4d78b9',
 		'HRColor2' 			=> '#0066b3',
+		'AjaxLoader'		=> 'ajax_blue.gif',
 	), $base_style);
 // Orange variant, for Phoenix
 	$orange_style = array_merge(array(
@@ -47,6 +48,7 @@
 		'TimeColor' 		=> '#a0a0a0',
 		'HRColor' 			=> '#fc9833',
 		'HRColor2' 			=> '#fca853',
+		'AjaxLoader'		=> 'ajax_orange.gif',
 	), $base_style);
 // Bronze variant, for MU
 	$bronze_style = array_merge(array(
@@ -55,6 +57,7 @@
 		'TimeColor' 		=> '#a0a0a0',
 		'HRColor' 			=> '#ABA457',
 		'HRColor2' 			=> '#ABA457',
+		'AjaxLoader'		=> 'ajax_bronze.gif',
 	), $base_style);
 // And we'll pick...
 	$styles = array(
@@ -88,7 +91,6 @@
 	.copy { font-size: 10px; color: {$style['PoweredByColor']}; text-align: center }
 	.timeline { font-size: 10px; color: {$style['TimeColor']}; text-align: left }
 	.name { font-size: 125%; font-family: Times New Roman, Times Roman, Times, serif }
-
 	hr { background-color: {$style['HRColor']}; color: {$style['HRColor']}; border: 0px; }
 
 
@@ -100,6 +102,7 @@
 	a:link:hover, a:visited:hover { border: 1px solid {$style['TextColor']}; text-decoration: none; background-color: {$style['DarkTextColor']}}
 	a:link.namer { background-color: black; border: 0px; text-decoration: none }
 	a:link:hover.namer { background-color: black; border: 0px; text-decoration: none }
+	a:visited.namer { background-color: black; border: 0px; text-decoration: none }
 
 /* The powered-by link is hidden */
 	.copy a, .copy a:link, .copy a:visited, .copy a:active, .copy a:hover {
@@ -151,6 +154,10 @@
 		width: 520px;
 		height: 35px;
 	}
+	.namer {
+		cursor: hand;
+		cursor: pointer;
+	}
 
 /* Hover magic for browsers that don't understand non-anchor based hover/focus is provided via jQuery */
 	.textbox:hover, .textarea:hover, .button:hover, .textbox.hover, .textarea.hover, .button.hover {
@@ -164,6 +171,61 @@
 		color: {$style['DarkTextColor']} !important;
 		border-color: {$style['DarkTextColor']} !important;
 		background-color: {$style['BGLightColor']} !important;
+	}
+
+/* Ajax loader */
+	#ajaxloader {
+		height: 18px;
+		width: 20px;
+		position: absolute;
+	}
+	#ajaxloader.loading {
+		background-image: url({$style[AjaxLoader]});
+		background-attachment: scroll;
+		background-position: center center;
+		background-repeat: no-repeat;
+	}
+
+/* Multichat bits */
+	#multichat-name-pick-list {
+		border-collapse: collapse;
+		margin: 0px;
+		margin-bottom: 3px;
+		padding: 0px;
+		border: 0px;
+	}
+	#multichat-name-pick-list td {
+		font-size: 90%;
+		padding: 1px;
+		padding-left: 5px;
+		padding-right: 5px;
+		text-align: center;
+		border-bottom: 1px solid #444444;
+	}
+	#multichat-name-pick-list td.picked {
+		border: 1px solid #444444;
+		border-bottom: 0px;
+	}
+	#multichat-name-pick-list td.adder {
+		border-bottom: 0px;
+		border-left: 1px solid #444444;
+		border-top: 1px solid #444444;
+		text-align: center;
+		font-weight: bold;
+		cursor: hand;
+		cursor: pointer;
+	}
+	#multichat-name-pick-list td .name {
+		font-size: 110%;
+		font-weight: normal;
+		cursor: hand;
+		cursor: pointer;
+	}
+	#multichat-name-pick-list td.picked .name {
+		font-size: 115%;
+		font-weight: bold;
+		cursor: hand;
+		cursor: pointer;
 	}
 
 /* Guard page: main table cell magic */

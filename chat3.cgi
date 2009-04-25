@@ -20,6 +20,7 @@ use strict;
 use warnings;
 use CGI qw(:standard);
 use CGI::Carp qw(fatalsToBrowser set_message);
+use JSON::PP;
 use Natter::Session;
 use Natter::HTTP_Request;
 use Natter::HTTP_Response;
@@ -278,13 +279,19 @@ COPPA_CHECK
 		} # end if
 	# Update the guard/ban list of users
 		updatePostlog() if $added_chat_message;
-	# Feed the form back to them
-		$response->appendBody(standardHTML({
-			header => "",
-			body => generatePostForm(),
-			footer => "",
-			no_powered => 1,
-		}));
+	# If this is an ajax request, we'll want to return json...
+		if($request->isAjax()) {
+			$response->setContentType('application/json');
+			$response->setBody(JSON::PP::encode_json(generatePostForm(1)));
+		} else {
+		# Feed the form back to them
+			$response->appendBody(standardHTML({
+				header => "",
+				body => generatePostForm(),
+				footer => "",
+				no_powered => 1,
+			}));
+		} # end if
 		&Exit();
 	} # end sub
 
@@ -480,7 +487,14 @@ COPPA_CHECK
 
 # Generate the HTML responsible for the posting form
 	sub generatePostForm {
-		my %clone = %in;
+		my $return_hash = shift;
+		my %clone;
+	# Hash slices don't work like I'd like them to.
+		$clone{username} =		$in{username};
+		$clone{url} =			$in{url};
+		$clone{color} =			$in{color};
+		$clone{mcolor} =		$in{mcolor};
+		$clone{caption} =		$in{caption};
 	# Fields are labled by replacing the value with the label when there's no value
 		$clone{'username'} = $in{username} || "Name";
 		$clone{'url'} = CGI::escapeHTML($clone{'url'}) || "URL";
@@ -496,9 +510,8 @@ COPPA_CHECK
 		}
 
 	# Assemble the URL for the name change link
-		my $conglom = $config->{ScriptName} . "?";
+		my $conglom = $config->{ScriptName} . "?action=post&";
 		foreach my $k (keys %clone) {
-			next if $k eq "message";
 			$conglom .= "$k=" . CGI::escape($clone{$k}) . "&";
 		} # end foreach
 		$clone{'username_coded'} = CGI::escapeHTML($clone{'username'});
@@ -507,18 +520,25 @@ COPPA_CHECK
 	# The user can click their own name to get the name change form.  Deal with
 	# that little problem here.
 		my $name_box;
-		if((exists $in{'name_change'}) && ($in{'name_change'} eq "true")) {
-			$name_box = qq(<input type="text" class="textbox" name="username" value="$clone{username_coded}" size="13">);
+		if((exists $in{'name_change'} && $in{'name_change'} eq "true") || $config->{MultiChat}) {
+			$name_box = qq(<input type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">);
 		} else {
 			$name_box = (
 				$clone{'username'} ne "Name"
-				? qq(<input type="hidden" name="username" value="$clone{username_coded}"><a href="$conglom" class="namer"><font color="$clone{color}" class="name"><b>$clone{username}</b></font></a>)
-				: qq(<input type="text" class="textbox" name="username" value="$clone{username_coded}" size="13">)
+				? qq(<input type="hidden" name="username" id="username" value="$clone{username_coded}"><a href="$conglom" id="namechange_link" class="namer"><font color="$clone{color}" class="name"><b>$clone{username}</b></font></a>)
+				: qq(<input type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">)
 			);
 		} # end else
 
+	# Ajax requests get the sanitized form data back
+		$clone{'message'} = '';
+		return \%clone if $return_hash;
+
+	# Otherwise, prepare the HTML.
 		my $javascript = q~
 <script type="text/javascript">
+
+	var multichat_enabled = ~ . ($config->{MultiChat} + 0) . q~;
 
 	function refresh_chat() {
 		if($('#frm'))
@@ -544,9 +564,14 @@ COPPA_CHECK
 	// Submit button gets disabled on click, and the form submitted manually.
 		$('#subm').click(function(event){
 			var el = $(event.target);
-			el.disabled = true;
+			var is_disabled = el.attr('disabled') ? 1 : 0;
+			el.attr('disabled', 'disabled');
 			el.addClass('disabled');
-			$('#frm').submit();
+			if(!is_disabled && multichat_enabled) {
+				multichat.post();
+			} else if(!is_disabled) {
+				$('#frm').submit();
+			} // end if
 			event.preventDefault();
 			event.stopPropagation();
 			return false;
@@ -559,11 +584,25 @@ COPPA_CHECK
 			msg.focus();
 	// And force a refresh of the messages window
 		refresh_chat();
+	// Relocate the ajax loading box
+		var subm_tl = $('#subm').offset();
+		$('#ajaxloader').css({ top: subm_tl.top + 'px', left: (subm_tl.left - 25) + 'px' });
+	// Attach hiding and showing the ajax loading box to the loading box...
+		$('#ajaxloader').ajaxStart(function(){ $(this).addClass('loading') });
+		$('#ajaxloader').ajaxComplete(function(){ $(this).removeClass('loading') });
+	// Hide the name change link and show the name form, when clicked
+		$('#multichat_name').click(function(event){
+			$('#multichat_name').hide();
+			$('#username').show();
+		});
 	});
 </script>~;
 
+		my $multichat = generateMultiChatForm();
+
 		return<<WHOSITS;
 $javascript
+$multichat
 <form action="$config->{ScriptName}" method="post" name="frm" id="frm">
 <input type="hidden" name="action" value="post">
 	<table width="800" cellpadding="0" cellspacing="0" align="center" id="postformtable">
@@ -574,13 +613,13 @@ $javascript
 			<td align="center" width="520">
 				<table width="520" border="0" cellspacing="0" cellpadding="1">
 					<tr>
-						<td align="left">
+						<td align="left" width="145">
 							<input type="text" name="url" id="url" value="$clone{url}" size="13" class="textbox" />
 						</td>
 						<td align="center">
 							<input type="text" name="caption" id="caption" value="$clone{caption}" size="13" class="textbox" />
 						</td>
-						<td align="right">
+						<td align="right" width="145">
 							<input type="text" name="mcolor" id="mcolor" value="$clone{mcolor}" size="13" class="textbox" />
 						</td>
 					</tr>
@@ -590,13 +629,14 @@ $javascript
 						</td>
 					</tr>
 					<tr>
-						<td align="left" valign="top">
+						<td align="left" valign="top" width="145">
+							<div id="ajaxloader">&nbsp;</div>
 							<input tabindex="2" type="submit" class="button" value="Send" name="subm" id="subm" accesskey="s" />
 							&nbsp;&nbsp;
 							<input type="button" class="button" onclick="refresh_chat()" name="upd" id="upd" value="Update" />
 						</td>
-						<td align="center">$name_box</td>
-						<td align="right" valign="top">
+						<td align="center">$name_box<span id="multichat_name" class="namer"></span></td>
+						<td align="right" valign="top" width="145">
 							<input type="text" name="color" id="color" class=textbox value="$clone{color}" size="13" />
 						</td>
 					</tr>
@@ -611,6 +651,62 @@ $javascript
 WHOSITS
 	} # end generatePostform
 
+
+# Generate the top form for MultiChat
+	sub generateMultiChatForm {
+		return '' unless $config->{MultiChat};
+		return q~
+<script type="text/javascript">
+// Multichat permits one posting form to switch between multiple sets of nifty data.
+multichat = {
+	post: function() {
+		var form_data = $('#frm').serializeArray();
+		form_data.subm = 'Send';
+		$.post(
+			'~ . $config->{ScriptName} . q~',
+			form_data,
+			function(json_data, textStatus){
+			// Update the post form.
+				multichat.updateForm(json_data);
+			// Now turn the submit button back on.
+				$('#subm').removeAttr('disabled');
+				$('#subm').removeClass('disabled');
+			// And refresh the chat frame
+				refresh_chat();
+			// And refocus the posting form.
+				$('#message').focus();
+			},
+			'json'
+		);
+	},
+	updateForm: function(data) {
+		$.each(data, function(index, value){
+			var el = $('#' + index);
+			if(el) {
+				el.attr('value', value);
+			} // end if
+		});
+	// Show the user's name, hiding the text box until clicked.
+		if(data.username != 'Name') {
+			$('#multichat_name').html('<font color="' + data.color + '" class="name"><b>' + data.username + '</b></font>');
+			$('#multichat_name').show();
+			$('#username').hide();
+			if($('#namechange_link'))
+				$('#namechange_link').hide();
+		} // end if
+	}
+};
+</script>
+<table border="0" cellspacing="0" cellpadding="0" id="multichat-name-pick-list" align="center">
+	<tr>
+		<td id="multichat-table-start">&nbsp;</td>
+		<td class="picked"><span class="name"><i><font color="~ . $in{color} . q~">~ . ($in{username} eq 'Name' ? 'lurker' : $in{username}) . q~</font></i></span></td>
+		<td id="multichat-table-end">&nbsp;</td>
+		<td id="multichat-adder" class="adder">&nbsp;+&nbsp;</td>
+	</tr>
+</table>
+~;
+	} # end generateMultiChatForm
 
 
 # Update the chat messages file

@@ -27,5 +27,6 @@ package Natter::HTTP_Request;
 # This is technically wrong, but we don't care about HEAD, PUT, etc.
 	sub isGet { return $main::cgi->request_method() ne 'POST'; }
 	sub isPost { return $main::cgi->request_method() eq 'POST'; }
+	sub isAjax { return ($_[0]->getHeader('X-Requested-With') eq 'XMLHttpRequest' || $main::cgi->param('ajax_api')) ? 1 : 0 }
 
 1;
