@@ -532,6 +532,8 @@ COPPA_CHECK
 
 	# Ajax requests get the sanitized form data back
 		$clone{'message'} = '';
+		$clone{'hex_color'} = $in{color} if($return_hash);
+		$clone{'hex_mcolor'} = $in{mcolor} if($return_hash);
 		return \%clone if $return_hash;
 
 	# Otherwise, prepare the HTML.
@@ -659,6 +661,37 @@ WHOSITS
 <script type="text/javascript">
 // Multichat permits one posting form to switch between multiple sets of nifty data.
 multichat = {
+//
+	_base_struct: {
+		username: 'Name',
+		color: 'white',
+		hex_color: '#ffffff',
+		mcolor: 'Message Color',
+		hex_mcolor: '#ffffff',
+		caption: '~ . ($config->{EnableCaptions} ? 'Caption' : 'E-Mail') . q~',
+		url: 'URL'
+	},
+// What's our name data look like?
+	name_data: [
+		{}
+	],
+// Which tab is active?
+	active: 0,
+
+
+// Init the module
+	init: function() {
+		multichat.initNameData(0);
+	},
+
+// Init a name data structure
+	initNameData: function(index) {
+		var clone = {};
+		$.each(multichat._base_struct, function(k, v) { clone[k] = v });
+		multichat.name_data[index] = clone;
+	},
+
+// Post a message
 	post: function() {
 		var form_data = $('#frm').serializeArray();
 		form_data.subm = 'Send';
@@ -667,7 +700,7 @@ multichat = {
 			form_data,
 			function(json_data, textStatus){
 			// Update the post form.
-				multichat.updateForm(json_data);
+				multichat.updateForm(json_data, false, true);
 			// Now turn the submit button back on.
 				$('#subm').removeAttr('disabled');
 				$('#subm').removeClass('disabled');
@@ -679,28 +712,86 @@ multichat = {
 			'json'
 		);
 	},
-	updateForm: function(data) {
+
+// Update the post form
+	updateForm: function(data, skip_data_update, clobber_message) {
 		$.each(data, function(index, value){
+			if(!clobber_message && index == 'message') return;
 			var el = $('#' + index);
 			if(el) {
 				el.attr('value', value);
 			} // end if
 		});
+	// Update the internal representation of the username data
+		if(!skip_data_update)
+			multichat.updateName(multichat.active, data);
 	// Show the user's name, hiding the text box until clicked.
-		if(data.username != 'Name') {
-			$('#multichat_name').html('<font color="' + data.color + '" class="name"><b>' + data.username + '</b></font>');
+		$('#multichat_name').html('<font color="' + data.hex_color + '" class="name"><b>' + data.username + '</b></font>');
+		if(data.username == '' || data.username == 'Name') {
+			$('#multichat_name').hide();
+			$('#username').show();
+		} else {
 			$('#multichat_name').show();
 			$('#username').hide();
-			if($('#namechange_link'))
-				$('#namechange_link').hide();
 		} // end if
+	// Now hide the old name change link
+		if($('#namechange_link'))
+			$('#namechange_link').hide();
+	},
+
+// Update the name data in the tab list
+	updateName: function(name_index, data) {
+		multichat.name_data[ name_index ] = data;
+		var name = data.username;
+		if(name == '' || name == 'Name') name = 'lurker';
+		$('#name-' + name_index).html('<font color="' + data.hex_color + '" class="name"><b>' + name + '</b></font>');
+	},
+
+// Add a new name to the tab list
+	addName: function() {
+		var new_name_id = multichat.name_data.length;
+		multichat.initNameData(new_name_id);
+		$('#multichat-table-end').before('<td id="name-' + new_name_id + '"><font color="white" class="name"><b>lurker</b></font></td>');
+		multichat.selectName(new_name_id);
+		$('#message').blur();
+		$('#username').focus();
+	},
+
+// Select a name tab
+	selectName: function(index) {
+		if(index != parseInt(index)) return;
+		if(!multichat.name_data) return;
+	// Play class switcheroo
+		$('#name-' + multichat.active).removeClass('picked');
+		multichat.active = index;
+		$('#name-' + multichat.active).addClass('picked');
+	// Update the form with the name info
+		multichat.updateForm(multichat.name_data[ multichat.active ], true, false);
+		$('#message').focus();
 	}
 };
+$().ready(function(){
+	$('#multichat-adder').click(function(){
+		multichat.addName();
+	});
+	$('#multichat-name-pick-list td').live('click', function(event){
+	// Determine the table cell
+		var el = event.target;
+		if(el.nodeName != 'TD') el = ($(event.target).parents('td'))[0];
+	// Extract the id attribute
+		if(!el.id) return;
+		var name_id = el.id.split(/\-/);
+		if(!name_id || !name_id.length || name_id.length != 2) return;
+	// Call the select
+		multichat.selectName(name_id[1]);
+	});
+});
+multichat.init();
 </script>
 <table border="0" cellspacing="0" cellpadding="0" id="multichat-name-pick-list" align="center">
 	<tr>
 		<td id="multichat-table-start">&nbsp;</td>
-		<td class="picked"><span class="name"><i><font color="~ . $in{color} . q~">~ . ($in{username} eq 'Name' ? 'lurker' : $in{username}) . q~</font></i></span></td>
+		<td class="picked" id="name-0"><span class="name"><i><font color="~ . $in{color} . q~">~ . ($in{username} eq 'Name' || !$in{username} ? 'lurker' : $in{username}) . q~</font></i></span></td>
 		<td id="multichat-table-end">&nbsp;</td>
 		<td id="multichat-adder" class="adder">&nbsp;+&nbsp;</td>
 	</tr>
@@ -730,7 +821,7 @@ multichat = {
 		my $msgcolor = ( $in{'mcolor'} ne "Message Color" ? $in{'mcolor'} : $namecolor );
 		$msgcolor = $namecolor unless $msgcolor;
 		my $linkhtml = ( $in{'url'} ne "URL" ? qq(<a href="$in{'url'}" target="_blank" class="url"><font color="$namecolor" face="Wingdings">2</font></a>) : "" );
-		my $captionhtml = ( ($in{'caption'} && ($in{'caption'} ne "Caption")) ? qq!<font color="$namecolor"><i>($in{'caption'})</i></font>! : "" );
+		my $captionhtml = ( ($in{'caption'} && ($in{'caption'} ne "Caption")&& ($in{'caption'} ne "E-Mail")) ? qq!<font color="$namecolor"><i>($in{'caption'})</i></font>! : "" );
 	# If captions are disabled, add the email address to the link
 		if(!$config->{EnableCaptions}) {
 			$captionhtml = '';

@@ -31,6 +31,7 @@
 		'BanDarkColor'		=> '#101010',
 		'BanLiftColor'		=> '#f0a0a0',
 		'PoweredByColor'	=> '#303040',
+		'MultiChatBorder'	=> '#444444',
 	);
 // Blue variant, for TwC
 	$blue_style = array_merge(array(
@@ -188,7 +189,7 @@
 
 /* Multichat bits */
 	#multichat-name-pick-list {
-		border-collapse: collapse;
+		border-collapse: separate;
 		margin: 0px;
 		margin-bottom: 3px;
 		padding: 0px;
@@ -200,16 +201,19 @@
 		padding-left: 5px;
 		padding-right: 5px;
 		text-align: center;
-		border-bottom: 1px solid #444444;
+		border: 1px solid {$style['MultiChatBorder']};
+		border-top: 0px;
+		border-left: 0px;
+		border-right: 0px;
 	}
 	#multichat-name-pick-list td.picked {
-		border: 1px solid #444444;
+		border: 1px solid {$style['MultiChatBorder']};
 		border-bottom: 0px;
 	}
 	#multichat-name-pick-list td.adder {
 		border-bottom: 0px;
-		border-left: 1px solid #444444;
-		border-top: 1px solid #444444;
+		border-left: 1px solid {$style['MultiChatBorder']};
+		border-top: 1px solid {$style['MultiChatBorder']};
 		text-align: center;
 		font-weight: bold;
 		cursor: hand;
