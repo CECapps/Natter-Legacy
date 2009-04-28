@@ -17,7 +17,6 @@
 use Fcntl qw(:flock);
 use DateTime;
 use Socket;
-use Digest::MD5;
 
 # CAUTION: Spaghetti code ahead.
 our $VERSION = '4.10.1';
@@ -330,9 +329,17 @@ $ifoot
 <div class="footer">$_[0]->{footer}</div>
 $powered_by
 FORMAT
+			if($request->isAjax) {
+				my $data = $_[0];
+				$data->{standardhtml} = 1;
+				$response->addHeader('X-JSON', JSON::PP::encode_json($data));
+			} # end if
 		} else {
 	# Otherwise it's just a simple message.
 			$text = join("", @_) . qq~<p class="copy">$pbstring</p>~;
+			if($request->isAjax) {
+				$response->addHeader('X-JSON', JSON::PP::encode_json({ 'html' => join('', @_), standardhtml => 1 }));
+			} # end if
 		} # end if
 
 		return <<STANDARDhtml;

@@ -262,6 +262,7 @@ COPPA_CHECK
 		noEntry_Insane() unless defined $session->{data}->{sanity} && $session->{data}->{sanity} == 1;
 	# Check for the passwordy bits
 		noEntry_MissingPassword() if($config->{ChatPassword} && (!defined $session->{data}->{password} || $session->{data}->{password} ne $config->{ChatPassword}));
+
 	# If the user posted a message, add it
 		my $added_chat_message;
 		if(exists $in{'username'}) {
@@ -816,9 +817,11 @@ multichat = {
 	}
 };
 $().ready(function(){
+// Attach behavior to the add button
 	$('#multichat-adder').click(function(){
 		multichat.addName();
 	});
+// Attach behavior to the name change tab
 	$('#multichat-name-pick-list td').live('click', function(event){
 	// Determine the table cell
 		var el = event.target;
@@ -834,6 +837,7 @@ $().ready(function(){
 		event.stopPropagation();
 		return false;
 	});
+// Attach behavior to the close tab link
 	$('#multichat-name-pick-list td span.yoink').live('click', function(event){
 	// Determine the table cell
 		var el = event.target;
@@ -848,6 +852,27 @@ $().ready(function(){
 		event.stopImmediatePropagation();
 		event.stopPropagation();
 		return false;
+	});
+// Finally, set up an ajax listener that looks for the X-JSON header
+// and will throw error messages that are returned from the server
+	$.ajaxSetup({
+		complete: function(request, status) {
+		// Did we get the header?
+			var oops = request.getResponseHeader('X-JSON');
+			if(!oops) return;
+		// Yeeeup.  How bad is it?  We can only process standardHTML messages.
+			var data = eval('(' + oops + ')');
+			if(!data.standardhtml) return;
+		// Yeah, it's bad.  This is a world-ender.  Rewrite the world.
+			if(data.html) {
+				data.header = '';
+				data.body = data.html;
+				data.footer = '';
+			} // end if
+			$('div.header').attr('id', 'old_header').hide().after('<div class="header">' + data.header + '</div>');
+			$('div.body').attr('id', 'old_body').hide().after('<div class="body">' + data.body + '</div>');
+			$('div.footer').attr('id', 'old_footer').hide().after('<div class="footer">' + data.footer + '</div>');
+		},
 	});
 });
 multichat.init();
@@ -878,7 +903,7 @@ multichat.init();
 	# Don't post the intro message if the user is an authenticated guard.
 		return undef if exists $in{special} && defined $session->{data}->{guard} && $session->{data}->{guard};
 	# Don't post the intro message if it's been posted.
-		return undef if exists $session->{data}->{entered} && $session->{data}->{entered};
+		return undef if exists $in{special} && defined $session->{data}->{entered} && $session->{data}->{entered};
 
 	# Piece together the form HTML
 		my $name = ($in{'username'} ne "Name" ? $in{'username'} : " " );
