@@ -589,7 +589,7 @@ COPPA_CHECK
 		refresh_chat();
 	// Relocate the ajax loading box
 		var subm_tl = $('#subm').offset();
-		$('#ajaxloader').css({ top: subm_tl.top + 'px', left: (subm_tl.left - 25) + 'px', position: absolute });
+		$('#ajaxloader').css({ top: subm_tl.top + 'px', left: (subm_tl.left - 25) + 'px', position: 'absolute' });
 	// Attach hiding and showing the ajax loading box to the loading box...
 		$('#ajaxloader').ajaxStart(function(){ $(this).addClass('loading') });
 		$('#ajaxloader').ajaxComplete(function(){ $(this).removeClass('loading') });
