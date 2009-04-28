@@ -927,7 +927,7 @@ multichat.init();
 		my $newline = qq(<div class="messageline"> <span class="thename"><font color="$namecolor">$name </font></span>);
 		$newline .= qq! &nbsp;<span class="thecaption">$captionhtml</span> ! if $captionhtml;
 		$newline .= qq( <span class="thelinks">$linkhtml</span>) if($linkhtml);
-		$newline .= qq! <br />&nbsp;&nbsp;! if($config->{EnableCaptions});
+		$newline .= qq! <br />&nbsp;&nbsp;! if($config->{EnableCaptions} && !$config->{DisableCaptionBR});
 		$newline .= qq! <span class="thetime"><font color="$msgcolor"> ($timebit) </font></span>!;
 		$newline .= qq( <span class="themessage"><font color="$msgcolor">$message</font></span> </div>);
 

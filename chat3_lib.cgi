@@ -184,6 +184,8 @@ our $VERSION_TAG = '"Ingress"';
 		$config->{PasswordAttempts} ||= 3;
 	# MultiChat is disabled by default
 		$config->{MultiChat} ||= 0;
+	# Always break after captions, if enabled.
+		$config->{DisableCaptionBR} ||= 0;
 		return $config;
 	} # end getConfigPlusDefaults
 

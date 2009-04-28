@@ -8,6 +8,7 @@ Date: April 28, 2009
    and remove sets of names and colors, all from a single chat window.
  - Users can no logner manipulate the chat into posting extra "A user has
    entered the chat" messages.
+ - The line break after the user caption is now a configuration option.
 
 Version: 4.10.0
 Codename: Ingress
