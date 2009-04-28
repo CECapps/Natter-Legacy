@@ -210,6 +210,19 @@
 		border: 1px solid {$style['MultiChatBorder']};
 		border-bottom: 0px;
 	}
+	#multichat-name-pick-list td.picked span.yoink {
+		display: inline;
+		color: red;
+		margin-left: 5px;
+		cursor: hand;
+		cursor: pointer;
+	}
+	#multichat-name-pick-list td.picked span.yoink:hover {
+		text-decoration: underline;
+	}
+	#multichat-name-pick-list td span.yoink {
+		display: none;
+	}
 	#multichat-name-pick-list td.adder {
 		border-bottom: 0px;
 		border-left: 1px solid {$style['MultiChatBorder']};

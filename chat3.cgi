@@ -744,14 +744,14 @@ multichat = {
 		multichat.name_data[ name_index ] = data;
 		var name = data.username;
 		if(name == '' || name == 'Name') name = 'lurker';
-		$('#name-' + name_index).html('<font color="' + data.hex_color + '" class="name"><b>' + name + '</b></font>');
+		$('#name-' + name_index).html('<font color="' + data.hex_color + '" class="name"><b>' + name + '</b></font><span class="yoink">x</span>');
 	},
 
 // Add a new name to the tab list
 	addName: function() {
 		var new_name_id = multichat.name_data.length;
 		multichat.initNameData(new_name_id);
-		$('#multichat-table-end').before('<td id="name-' + new_name_id + '"><font color="white" class="name"><b>lurker</b></font></td>');
+		$('#multichat-table-end').before('<td id="name-' + new_name_id + '"><font color="white" class="name"><b>lurker</b></font><span class="yoink">x</span></td>');
 		multichat.selectName(new_name_id);
 		$('#message').blur();
 		$('#username').focus();
@@ -768,6 +768,51 @@ multichat = {
 	// Update the form with the name info
 		multichat.updateForm(multichat.name_data[ multichat.active ], true, false);
 		$('#message').focus();
+	},
+
+// Close a name tab
+	closeName: function(index) {
+		if(multichat.active == index) {
+			var names = multichat.getNameList();
+		// Can't close the last name.
+			if(names.count < 2) {
+				return;
+			} // end if
+			var found_index = null;
+			var first_index = null;
+			for(var k in names) {
+				if(k == 'count') continue;
+				if(k == index) continue;
+			// Keep track of the first still active name
+				if(first_index == null)
+					first_index = k;
+			// Try to find the name immediately to the left of the closed name
+				if(found_index > index)
+					break;
+				found_index = k;
+			} // end foreach
+		// If we didn't find one to the left, default to the first.
+			if(found_index == null)
+				found_index = first_index;
+			multichat.selectName(found_index);
+		} // end if
+	// Yoink the table cell
+		$('#name-' + index).hide();
+		multichat.name_data[index].disabled = 1;
+	},
+
+// Get a list of all active names
+	getNameList: function() {
+		var names = {};
+		var count = 0;
+		$.each(multichat.name_data, function(k, v) {
+			if(!v.disabled) {
+				names[k] = v;
+				count++;
+			}
+		});
+		names.count = count;
+		return names;
 	}
 };
 $().ready(function(){
@@ -784,6 +829,25 @@ $().ready(function(){
 		if(!name_id || !name_id.length || name_id.length != 2) return;
 	// Call the select
 		multichat.selectName(name_id[1]);
+	// Stop bubbling.
+		event.stopImmediatePropagation();
+		event.stopPropagation();
+		return false;
+	});
+	$('#multichat-name-pick-list td span.yoink').live('click', function(event){
+	// Determine the table cell
+		var el = event.target;
+		if(el.nodeName != 'TD') el = ($(event.target).parents('td'))[0];
+	// Extract the id attribute
+		if(!el.id) return;
+		var name_id = el.id.split(/\-/);
+		if(!name_id || !name_id.length || name_id.length != 2) return;
+	// Call the delete
+		multichat.closeName(name_id[1]);
+	// Stop bubbling.
+		event.stopImmediatePropagation();
+		event.stopPropagation();
+		return false;
 	});
 });
 multichat.init();
@@ -813,6 +877,8 @@ multichat.init();
 		return undef if((!defined $raw || $raw eq "") && !$in{special});
 	# Don't post the intro message if the user is an authenticated guard.
 		return undef if exists $in{special} && defined $session->{data}->{guard} && $session->{data}->{guard};
+	# Don't post the intro message if it's been posted.
+		return undef if exists $session->{data}->{entered} && $session->{data}->{entered};
 
 	# Piece together the form HTML
 		my $name = ($in{'username'} ne "Name" ? $in{'username'} : " " );
@@ -842,6 +908,7 @@ multichat.init();
 
 	# If this is a special user entrance, post that instead.  Users logged in as guards don't get this.
 		if((defined $in{special} && $in{special} eq "entrance")) {
+			$session->{data}->{entered} = 1;
 			$newline = qq~<div class="messageline welcome"> <span class="themessage"><span class="star">*</span> A user has entered the chat.</font></span> <span class="thetime"> ($timebit) </span> </div>~;
 		} # end if
 

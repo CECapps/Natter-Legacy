@@ -44,6 +44,7 @@ package Natter::Session;
 		$self->{data} = {
 			COPPA			=> undef,
 			password		=> undef,
+			entered			=> undef,
 			sanity			=> undef,
 			kick_by			=> undef,
 			kick_reason		=> undef,
