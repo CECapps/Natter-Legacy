@@ -6,7 +6,7 @@ Date: April 28, 2009
    post form data without needing to load multiple chat tabs or windows.
    Using a tab-like interface, users will be able to enter, switch between,
    and remove sets of names and colors, all from a single chat window.
- - Users can no logner manipulate the chat into posting extra "A user has
+ - Users can no longer manipulate the chat into posting extra "A user has
    entered the chat" messages.
  - The line break after the user caption is now a configuration option.
 

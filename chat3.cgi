@@ -872,7 +872,7 @@ $().ready(function(){
 			$('div.header').attr('id', 'old_header').hide().after('<div class="header">' + data.header + '</div>');
 			$('div.body').attr('id', 'old_body').hide().after('<div class="body">' + data.body + '</div>');
 			$('div.footer').attr('id', 'old_footer').hide().after('<div class="footer">' + data.footer + '</div>');
-		},
+		}
 	});
 });
 multichat.init();
