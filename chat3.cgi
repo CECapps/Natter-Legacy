@@ -319,8 +319,9 @@ COPPA_CHECK
 		$filter{'message'} = formatHTML($in{'message'});
 		$filter{'caption'} = formatHTML($in{'caption'});
 
-	# Process markup in message
+	# Process markup in message and name
 		$filter{'message'} = formatMarkup($filter{'message'});
+		$filter{'username'} = formatMarkup($filter{'username'});
 
 	# Filters for URL
 		if($filter{'url'} ne "URL") {
@@ -475,6 +476,7 @@ COPPA_CHECK
 		my $match = 1;
 		while($match != 0) {
 			$match = 0;
+			$match++ if $this =~ s/(\[(monger|gradient)(=([a-zA-Z0-9\,\#]+))?\])(.+?)\[\/(?:monger|gradient)\]/formatMongerMarkup($4, $5)/isge;
 			$match++ if $this =~ s/(\[URL\])(http|https|ftp)(:\/\/\S+?)(\[\/URL\])/ <a href="$2$3" target="_blank">$2$3<\/a> /isg;
 			$match++ if $this =~ s/(\[URL\])(\S+?)(\[\/URL\])/ <a href="http:\/\/$2" target="_blank">$2<\/a> /isg;
 			$match++ if $this =~ s/(\[URL=)(http|https|ftp)(:\/\/\S+?)(\])(.+?)(\[\/URL\])/<a href="$2$3" target="_blank">$5<\/a>/isg;
@@ -485,6 +487,75 @@ COPPA_CHECK
 		} # end while
 		return $this;
 	} # end formatMarkup
+
+# Generate an HTML gradient (via markup)
+	sub formatMongerMarkup {
+	# Take the comma separated list and fix it.
+		my $color_list = shift;
+		if(!defined $color_list) {
+		# Skip back to the name and message colors if there were no paramaters.
+			$color_list = $in{color} . ',' . ($in{mcolor} eq "Message Color" ? $in{color} : $in{mcolor});
+		} # end if
+		my @colors = map { my $x = fix_color($_); $x =~ s/\#//; $x; } split /\,/, $color_list;
+	# What's our text look like?
+		my $text = shift;
+	# Don't bother processing unless there's a gradient to be made.
+		return $text if(scalar @colors == 1);
+	# Don't bother processing if all the colors are the same.
+		my %unique_colors = map { $_ => 1 } @colors;
+		return $text if( scalar keys %unique_colors == 1 );
+	# Most of the time, we'll be handed two colors.  This is easy, do it now.
+		if(scalar @colors == 2) {
+			my @mongered_characters = processMonger($colors[0], $colors[1], $text);
+			return join '', @mongered_characters;
+		} # end if
+	# More than two is interesting.  We need (length + (length - 1)) characters to pull it off...
+		return $text if length $text < (scalar @colors * 2) - 1;
+	# Ugg, fuck multiple colors.
+		return $text;
+		# [monger=red,green,blue]1234567890abcdefghijklmnopqrstuvwxyz[/monger]
+		# [monger=yellow,orange,red,purple,blue,green,yellow]TASTETHERAINBOWKTHX[/monger]
+		# TA STE TH ERA INB OWK THX
+	} # end formatMongerMarkup
+
+# Create an HTML gradient (core of formatMonger)
+	sub processMonger {
+		my $from_rgb = extractRGBComponentsFromHexColor(shift);
+		my $to_rgb = extractRGBComponentsFromHexColor(shift);
+		my $characters = shift;
+	# What's the difference between the colors?
+		my $red_step 	= ($from_rgb->[0] - $to_rgb->[0]) / length $characters;
+		my $green_step 	= ($from_rgb->[1] - $to_rgb->[1]) / length $characters;
+		my $blue_step 	= ($from_rgb->[2] - $to_rgb->[2]) / length $characters;
+	# Begin the transformation!
+		my @chars;
+		my @color_round = @$from_rgb;
+		foreach my $character ( split //, $characters ) {
+			my $hexcolor = assembleHexColorFromRGBComponents(@color_round);
+			$chars[ scalar @chars ] = '<font color="#' . $hexcolor . '">' . $character . '</font>';
+			$color_round[0] -= $red_step;
+			$color_round[1] -= $green_step;
+			$color_round[2] -= $blue_step;
+		} # end foreach
+		return @chars;
+	} # end processMonger
+
+# Given a hex color, return the *decimal* components of Red, Green, and Blue.
+	sub extractRGBComponentsFromHexColor {
+		$_[0] =~ m/^(..)(..)(..)$/ or return [0, 0, 0];
+		return [hex($1), hex($2), hex($3)];
+	} # end extractRGBComponentsFromHexColor
+
+# Given Red, Green, and Blue *decimal* values, return a hex color.
+	sub assembleHexColorFromRGBComponents {
+		my $red = sprintf '%x', int shift;
+		my $green = sprintf '%x', int shift;
+		my $blue = sprintf '%x', int shift;
+		$red = '0' . $red if length $red == 1;
+		$green = '0' . $green if length $green == 1;
+		$blue = '0' . $blue if length $blue == 1;
+		return $red . $green . $blue;
+	} # end assembleHexColorFromRGBComponents
 
 # Generate the HTML responsible for the posting form
 	sub generatePostForm {

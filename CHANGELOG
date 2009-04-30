@@ -1,5 +1,16 @@
 Natter Changelog
 
+Version: 4.10.2
+Date: April 30, 2009
+ - The [monger] markup is back, and has a new alias: [gradient].  Pass a comma
+   separated list of colors, and you'll get a pretty set of colors.  For example
+   [gradient=red,blue,green]This will start red, turn green, then turn
+   blue[/gradient]; [monger=#abcdef,#708090]This starts out light blue and
+   gets darker.[/monger].  Please use this markup instead of creating your own.
+   Using the tag with no paramaters inside the name will result in the name
+   color being used as the first paramater, and the message color being used as
+   the second paramater.
+
 Version: 4.10.1
 Date: April 28, 2009
  - MultiChat is finally here!  When enabled, users may switch between sets of
