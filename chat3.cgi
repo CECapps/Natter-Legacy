@@ -509,12 +509,53 @@ COPPA_CHECK
 			my @mongered_characters = processMonger($colors[0], $colors[1], $text);
 			return join '', @mongered_characters;
 		} # end if
-	# More than two is interesting.  We need (length + (length - 1)) characters to pull it off...
-		return $text if length $text < (scalar @colors * 2) - 1;
-	# Ugg, fuck multiple colors.
-		return $text;
+	# The user provided more than two colors.  Split the text up into chunks.
+		my $chunk_count = scalar @colors;
+		$chunk_count--;
+		my $character_count = length $text;
+		my $chars_per_chunk = $character_count / $chunk_count;
+	# We can't process the chunks unless we have at least two characters per chunk.
+		return $text if($chars_per_chunk < 2);
+		my @chunks;
+		my $chunk_num = 0;
+		my $char_num = 0;
+		my $total_chars = 0;
+		foreach my $character ( split //, $text ) {
+			$chunks[ $chunk_num ] .= $character;
+			$char_num++;
+			$total_chars++;
+			if($char_num > $chars_per_chunk && $total_chars < $character_count) {
+				$chunk_num++;
+				$char_num = 0;
+			} # end if
+		} # end foreach
+	# We now have a list of chunks.  Chances are that they're not equal in length.
+	# The last chunk has a tendency to be a bit short.  If it's only one character
+	# in length, and the previous chunk is at least three, steal the last character
+	# from the previous chunk and give it to the last one.
+		if(length $chunks[$chunk_num] == 1 && length $chunks[ ($chunk_num - 1) ] > 2) {
+			$chunks[$chunk_num] = substr($chunks[ ($chunk_num - 1) ], -1, 1, '') . $chunks[$chunk_num];
+		} # end if
+	# To make the gradient prettier, copy letters from chunk to chunk - 1.
+	# These will be removed later, and is the sole reason that the process function
+	# returns an array instead of a string.  <_<
+		foreach my $chunk_id ( 0 .. $chunk_count - 2 ) {
+			$chunks[$chunk_id] .= substr $chunks[ ($chunk_id + 1) ], 0, 1;
+		} # end foreach
+	# Now, mongerize each chunk.
+		my @mongered_chunks;
+		foreach my $chunk_id ( 0 .. $chunk_count - 1 ) {
+			my $from_color = $colors[ $chunk_id ];
+			my $to_color = $colors[ $chunk_id + 1 ] ? $colors[ $chunk_id + 1 ] : $colors[ $chunk_id  ];
+			my @html = processMonger($from_color, $to_color, $chunks[ $chunk_id ]);
+			pop @html if $chunk_id < $chunk_count - 1;
+			$mongered_chunks[ $chunk_id ] = join '', @html;
+		} # end foreach
+		return join '', @mongered_chunks;
+		#return $text;
 		# [monger=red,green,blue]1234567890abcdefghijklmnopqrstuvwxyz[/monger]
 		# [monger=yellow,orange,red,purple,blue,green,yellow]TASTETHERAINBOWKTHX[/monger]
+		# [monger=yellow,orange,red,purple,blue,green,yellow]aXslightlyXdifferentXstringXtoXtryXitXoutXandXstuff[/monger]
 		# TA STE TH ERA INB OWK THX
 	} # end formatMongerMarkup
 
