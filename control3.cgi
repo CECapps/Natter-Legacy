@@ -82,6 +82,13 @@ require "chat3_lib.cgi";
 	if(!defined $session->{data}->{admin}) {
 		$in{action} = 'authenticate';
 	} # end if
+# Make sure that the user still has admin privs
+	our $dbh = getDBHandle();
+	my($has_guard_privs,) = $dbh->selectrow_array('SELECT COUNT(*) FROM admin_users WHERE username = ? AND is_admin = 1', undef, $session->{data}->{admin});
+	if(!$has_guard_privs) {
+		$session->{data}->{admin} = undef;
+		$in{action} = 'authenticate';
+	} # end if
 
 # Set up a list of valid subroutines that the outside world can get to...
 	my %actions = (
@@ -91,6 +98,7 @@ require "chat3_lib.cgi";
 		save_settings	=> \&action_save_settings,
 		logins			=> \&action_logins,
 		save_logins		=> \&action_save_logins,
+		logout			=> \&action_logout,
 	);
 
 # ... then do the right one.
@@ -171,6 +179,7 @@ Welcome to the Chat Control Panel.  Please select an action to perform:
 	<li><a href="$config->{CPanelScriptName}?action=logins">Manage Admin/Guard Logins</a></li>
 	<li><a href="$config->{GuardScriptName}?action=frameset">View Chat Guard Frame</a></li>
 	<li><a href="$config->{NonCGIURL}/chat.html">View Chat</a></li>
+	<li><a href="$config->{CPanelScriptName}?action=logout">Log Out</a></li>
 </ul>
 </div>
 WTB_TEMPLATE_LIBRARY_PST
@@ -542,8 +551,8 @@ Your settings have been saved.
 				<td align="center">$delete</td>
 				<td><b>$row->{username}</b></td>
 				<td><input type="text" size="10" name="password-$sane_name" id="password-$sane_name" value="" autocomplete="off" /></td>
-				<td align="center"><input type="checkbox" name="admin-$sane_name" id="admin-$sane_name" $admin_checked /></td>
-				<td align="center"><input type="checkbox" name="guard-$sane_name" id="guard-$sane_name" $guard_checked /></td>
+				<td align="center"><input type="checkbox" name="admin-$sane_name" id="admin-$sane_name" $admin_checked value="1" /></td>
+				<td align="center"><input type="checkbox" name="guard-$sane_name" id="guard-$sane_name" $guard_checked value="1" /></td>
 			</tr>
 			~
 		} # end while
@@ -580,8 +589,8 @@ Your settings have been saved.
 				<td>&nbsp;</td>
 				<td><input type="text" size="10" name="new-username" id="new-username" value="" /></td>
 				<td><input type="text" size="10" name="new-password" id="new-password" value="" autocomplete="off" /></td>
-				<td align="center"><input type="checkbox" name="new-admin" id="new-admin" checked="checked" /></td>
-				<td align="center"><input type="checkbox" name="new-guard" id="new-guard" checked="checked" /></td>
+				<td align="center"><input type="checkbox" name="new-admin" id="new-admin" checked="checked" value="1" /></td>
+				<td align="center"><input type="checkbox" name="new-guard" id="new-guard" checked="checked" value="1" /></td>
 			</tr>
 		</tr>
 	</tbody>
@@ -615,8 +624,8 @@ Your settings have been saved.
 				$dbh->do(
 					'UPDATE admin_users SET is_admin = ?, is_guard = ? WHERE username = ?',
 					undef,
-					$in{'admin-' . $row->{username}},
-					$in{'guard-' . $row->{username}},
+					$in{'admin-' . $row->{username}} ? 1 : 0,
+					$in{'guard-' . $row->{username}} ? 1 : 0,
 					$row->{username}
 				);
 			} # end if
@@ -645,9 +654,27 @@ Your settings have been saved.
 					($in{'new-guard'} ? 1 : 0),
 				);
 			} else {
-				$err = 'Username already in use.';
+				$err = 'Your changes to admin/guard logins have been saved, but there was an error while adding the new user:<br />Username already in use, please try again.';
 			} # end if
 		} # end if
+		$err ||= 'Your changes to admin/guard logins have been saved.';
 		$dbh->do('COMMIT');
-		$response->setBody("Saved.  $err");
+		$response->setBody(standardHTML({
+			header => 'Settings Saved',
+			body => qq~
+<div class="cpanel-wrapper">
+$err
+<br />
+&raquo; <a href="$config->{CPanelScriptName}?action=intro">Return to Control Panel</a>
+</div>~,
+			footer => undef,
+		}));
 	} # end action_save_logins
+
+
+# Log the user out.
+	sub action_logout {
+		$session->{data}->{admin} = undef;
+		$response->addHeader('Status', '302 Found');
+		$response->addHeader('Location', $config->{CPanelScriptName} . '?action=authenticate');
+	} # end action_logout

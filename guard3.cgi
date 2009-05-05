@@ -87,10 +87,18 @@ require "chat3_lib.cgi";
 		list_bans		=> \&action_list_bans,
 		lift_ban		=> \&action_lift_ban,
 		clear_ban		=> \&action_clear_ban,
+		logout			=> \&action_logout,
 	);
 
 # The user can't do anything at all unless he's logged in.
 	if(!defined $session->{data}->{guard}) {
+		$in{action} = 'authenticate';
+	} # end if
+# Make sure that the user still has guard privs
+	our $dbh = getDBHandle();
+	my($has_guard_privs,) = $dbh->selectrow_array('SELECT COUNT(*) FROM admin_users WHERE username = ? AND is_guard = 1', undef, $session->{data}->{guard});
+	if(!$has_guard_privs) {
+		$session->{data}->{guard} = undef;
 		$in{action} = 'authenticate';
 	} # end if
 
@@ -116,11 +124,20 @@ require "chat3_lib.cgi";
 # Prompt the user to log in.
 	sub action_authenticate {
 	# If the user can be authenticated, do so and throw them at the frameset
-		if($request->isPost() && exists $guard_list->{ $in{username} } && $guard_list->{ $in{username} } eq $in{password}) {
-			migrateBans();
-			$session->{data}->{guard} = $in{username};
-			$response->addHeader('Status', '302 Found');
-			$response->addHeader('Location', $config->{GuardScriptName} . '?action=frameset');
+		if($request->isPost()) {
+			my $user = $dbh->selectrow_hashref(
+				'SELECT * FROM admin_users WHERE username = ? AND password = ? AND is_guard = 1',
+				undef,
+				$in{username},
+				Digest::MD5::md5_hex($in{password})
+			);
+			if($user) {
+				migrateBans();
+				$session->{data}->{guard} = $in{username};
+				$session->{data}->{admin} = $in{username} if($user->{is_admin});
+				$response->addHeader('Status', '302 Found');
+				$response->addHeader('Location', $config->{GuardScriptName} . '?action=frameset');
+			} # en dif
 		} # end if
 	# If not, the user will need to be prompted.
 		if(!defined $session->{data}->{guard}) {
@@ -316,6 +333,7 @@ TABLE
 ~ . qq~
        &raquo; <a href="logs.php?guard=1" target="_blank">Guard Chat Logs</a>
 <br /> &raquo; <a href="$config->{GuardScriptName}?action=list_bans">Active Ban List</a>
+<br /> &raquo; <a href="$config->{GuardScriptName}?action=logout" target="_top">Log Out</a>
 
 <br /><br />
 <input type="button" value="Refresh" class="button" id="banrefreshbtn_top">
@@ -527,6 +545,14 @@ $show_cleared
 			&raquo; <a href="$config->{GuardScriptName}?action=list_bans">Back to Ban List</a>
 		~));
 	} # end action_clear_ban
+
+
+# Log the user out.
+	sub action_logout {
+		$session->{data}->{guard} = undef;
+		$response->addHeader('Status', '302 Found');
+		$response->addHeader('Location', $config->{GuardScriptName} . '?action=authenticate');
+	} # end action_logout
 
 
 # Migrate bans from the old Storable format
