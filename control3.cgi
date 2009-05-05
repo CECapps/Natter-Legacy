@@ -91,7 +91,6 @@ require "chat3_lib.cgi";
 		save_settings	=> \&action_save_settings,
 		logins			=> \&action_logins,
 		save_logins		=> \&action_save_logins,
-		new_login		=> \&action_new_login,
 	);
 
 # ... then do the right one.
@@ -165,7 +164,7 @@ FORMBODY
 		$response->setBody(standardHTML({
 			header => 'Chat Control Panel',
 			body => <<WTB_TEMPLATE_LIBRARY_PST
-<div style="width: 750px; text-align: left; margin: auto;">
+<div class="cpanel-wrapper">
 Welcome to the Chat Control Panel.  Please select an action to perform:
 <ul>
 	<li><a href="$config->{CPanelScriptName}?action=settings">Change Settings</a></li>
@@ -236,10 +235,14 @@ WTB_TEMPLATE_LIBRARY_PST
 		$response->setBody(standardHTML({
 			header => 'Chat Settings',
 			body => <<YEGODS_SO_MUCH_HTML
+<div class="cpanel-wrapper">
 <br />
 <form method="post" action="$config->{CPanelSriptName}">
 <input type="hidden" name="action" value="save_settings" />
 <table border="0" cellspacing="0" cellpadding="2" id="cpanel-settings" align="center" width="650">
+	<caption style="text-align: left;">
+	&laquo; <a href="$config->{CPanelScriptName}?action=intro">Back</a>
+	</caption>
 
 	<tr><th colspan="2">Basic Settings</th></tr>
 
@@ -274,9 +277,12 @@ WTB_TEMPLATE_LIBRARY_PST
 			Time Zone Code
 			<br />
 			<span>Select the time zone geographically closest to a city or area
-			in your desired time zone.  If you're confused by this, picking
+			in your desired <a href="http://en.wikipedia.org/wiki/Time_zone"
+			target="_blank">time zone</a>.  If you're confused by this, picking
 			America/Los_Angeles for the Pacific timezone or America/New_York
-			for the Eastern timezone would probably be a good guess.</span>
+			for the Eastern timezone would probably be a good guess.  You may
+			also wish to <a href="http://en.wikipedia.org/wiki/Zoneinfo"
+			target="_blank">read more information about the Zoneinfo list</a>.</span>
 		</td>
 		<td valign="top">
 			<select name="TimeZoneCode" id="TimeZoneCode">
@@ -304,7 +310,7 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Message Limit
 			<br />
-			<span>IT IS THE NUMBER OF POSTS IN THE MESSAGE FRAME</span>
+			<span>How many messages will appear in the messages frame?</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="MessageLimit" id="MessageLimit" value="$config->{MessageLimit}" size="3" />
@@ -316,7 +322,7 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Refresh Rate
 			<br />
-			<span>BECAUSE META REFRESH SUCKS ASS</span>
+			<span>How quickly will the messages frame update?</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="RefreshRate" id="RefreshRate" value="$config->{RefreshRate}" size="3" />
@@ -328,7 +334,10 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Enable MultiChat
 			<br />
-			<span>BECAUSE MULTIPLE FRAMES ARE MADE OF LOSE AND FAIL</span>
+			<span>MultiChat allows users to use multiple sets of names and colors
+			within one chat frame.  If disabled, users that desire to chat under
+			multiple names and colors will need to open multiple instances of
+			the chat in their browser.</span>
 		</td>
 		<td valign="top">
 			<input type="checkbox" name="MultiChat" id="MultiChat" value="1" $MultiChatChecked />
@@ -339,7 +348,9 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Enable Lameness Filter
 			<br />
-			<span>CAPS LOCK IS CRUISE CONTROL FOR COOL</span>
+			<span>When enabled, the Lameness Filter will prevent all-capital or
+			mostly-captial posts from going through.  Fixed posts will be transformed
+			into all lower-case.</span>
 		</td>
 		<td valign="top">
 			<input type="checkbox" name="DisableLamenessFilter" id="DisableLamenessFilter" value="1" $DisableLamenessFilterChecked />
@@ -350,7 +361,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Enable Captions
 			<br />
-			<span>ROLEPLAY IS FOR NINNIES</span>
+			<span>Captions are small blurbs of text, shown next to each chatter's
+			name.  Captions can be used to describe mood, attitude, etc.</span>
 		</td>
 		<td valign="top">
 			<input type="checkbox" name="EnableCaptions" id="EnableCaptions" value="1" $EnableCaptionsChecked />
@@ -361,7 +373,10 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Break After Captions
 			<br />
-			<span>BECAUSE SOME PEOPLE LIKE IT ONE WAY AND OTHERS LIKE IT THE OTHER WAY</span>
+			<span>When disabled, the name and caption will appear on the same line
+			with each chat message.  When enabled, the name and caption will be
+			displayed above each message.  You may wish to adjust the Message
+			Limit to accomodate the extra space required by this feature.</span>
 		</td>
 		<td valign="top">
 			<input type="checkbox" name="DisableCaptionBR" id="DisableCaptionBR" value="1" $DisableCaptionBRChecked />
@@ -372,9 +387,11 @@ WTB_TEMPLATE_LIBRARY_PST
 
 	<tr><!-- COPPAAge -->
 		<td class="l">
-			COPPA Age
+			Minimum Chatter Age
 			<br />
-			<span>YOUR GOVERNMENT KNOWS BEST</span>
+			<span>Depending on local or national laws, you may need to check the
+			age of your users before permitting them to chat.  Set to zero to
+			disable this feature.</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="COPPAAge" id="COPPAAge" value="$COPPAAge" size="3" />
@@ -385,7 +402,9 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Trust X-Forwarded-For Header?
 			<br />
-			<span>BECAUSE PROXY SERVERS SUCK</span>
+			<span>Users behind proxy servers can be detected by using this HTTP
+			header.  Beware that this header can be forged by malicious users.
+			If you don't know what this means, leave this disabled.</span>
 		</td>
 		<td valign="top">
 			<input type="checkbox" name="CheckProxyForward" id="CheckProxyForward" value="1" $CheckProxyForwardChecked />
@@ -394,9 +413,11 @@ WTB_TEMPLATE_LIBRARY_PST
 
 	<tr><!-- HttpBLAPIKey -->
 		<td class="l">
-			HttpBL API Key
+			Http:BL API Key
 			<br />
-			<span>BECAUSE PROJECT HONEYPOT IS PRETTY NIFTY</span>
+			<span>If you have an Http:BL API key from Project Honeypot and wish
+			to use it to filter users, please enter the key here.  If you don't
+			know what this means, leave this field blank.</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="HttpBLAPIKey" id="HttpBLAPIKey" value="$HttpBLAPIKey" size="20" />
@@ -407,7 +428,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Chat Password
 			<br />
-			<span>DESU DESU DESU DESU DESU DESU</span>
+			<span>Users will be required to provid this password before they enter
+			the chat.  Leave this blank to not require a password.</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="ChatPassword" id="ChatPassword" value="$ChatPassword" size="15" />
@@ -418,7 +440,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Password Attempts
 			<br />
-			<span>THREE STRIKES AND YOU ARE OUT</span>
+			<span>If users fail entering the password more than this many times,
+			they will be prevented from attempting again for up to half an hour.</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="PasswordAttempts" id="PasswordAttempts" value="$PasswordAttempts" size="3" />
@@ -429,7 +452,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		<td class="l">
 			Banned Redirect URL
 			<br />
-			<span>BECAUSE LAST MEASURE IS MADE OF WIN AND GOD.  AND GOATSE.</span>
+			<span>If you wish to direct users to another web site when they have
+			been banned, enter the full and complete URL to the site here.</span>
 		</td>
 		<td valign="top">
 			<input type="text" name="BannedRedirect" id="BannedRedirect" value="$BannedRedirect" size="30" />
@@ -438,8 +462,12 @@ WTB_TEMPLATE_LIBRARY_PST
 
 </table>
 <br />
-<input type="submit" value="Save Settings" class="button" />
+<center>
+	<input type="submit" value="Save Settings" class="button" />
+</center>
 </form>
+</div>
+<br /><br />
 YEGODS_SO_MUCH_HTML
 ,
 			footer => undef,
@@ -449,23 +477,177 @@ YEGODS_SO_MUCH_HTML
 
 # Save changes to settings
 	sub action_save_settings {
-		$response->setBody('You called action=save_settings');
+		my @string_settings = qw~
+			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword
+		~;
+		my @numeric_settings = qw~
+			MessageLimit RefreshRate COPPAAge PasswordAttempts
+		~;
+		my @bool_settings = qw~
+			EnableCaptions CheckProxyForward MultiChat
+		~;
+		my @negative_bool_settings = qw~
+			DisableLamenessFilter DisableCaptionBR
+		~;
+		my $dbh = getDBHandle();
+		$dbh->do('BEGIN TRANSACTION');
+		$dbh->do('DELETE FROM settings');
+		my $sth = $dbh->prepare('INSERT INTO settings(name,value) VALUES(?,?)');
+		foreach my $setting_name (@numeric_settings) {
+			$sth->execute($setting_name, $in{$setting_name} + 0);
+		} # end foreach
+		foreach my $setting_name (@bool_settings) {
+			$sth->execute($setting_name, (int $in{$setting_name} ? 1 : 0));
+		} # end foreach
+		foreach my $setting_name (@negative_bool_settings) {
+			$sth->execute($setting_name, ($in{$setting_name} ? 0 : 1));
+		} # end foreach
+		foreach my $setting_name (@string_settings) {
+			$sth->execute($setting_name, $in{$setting_name});
+		} # end foreach
+		$sth->finish();
+		$dbh->do('COMMIT');
+
+		$response->setBody(standardHTML({
+			header => 'Settings Saved',
+			body => qq~
+<div class="cpanel-wrapper">
+Your settings have been saved.
+<br />
+&raquo; <a href="$config->{CPanelScriptName}?action=intro">Return to Control Panel</a>
+</div>~,
+			footer => undef,
+		}));
 	} # end action_save_settings
 
 
 # Allow the user to manage user logins
 	sub action_logins {
-		$response->setBody('You called action=logins');
+		my $dbh = getDBHandle();
+		my $sth = $dbh->prepare('SELECT * FROM admin_users ORDER BY username ASC');
+		$sth->execute();
+		my @user_html;
+		while(my $row = $sth->fetchrow_hashref) {
+			my $sane_name = CGI::escapeHTML($row->{username});
+			my $admin_checked = $row->{is_admin} ? 'checked="checked"' : '';
+			my $guard_checked = $row->{is_guard} ? 'checked="checked"' : '';
+			my $delete = qq~<input type="checkbox" name="delete-$sane_name" id="delete-$sane_name" />~;
+			if($session->{data}->{admin} eq $row->{username}) {
+				$delete = '--';
+				$admin_checked .= ' disabled="disabled"';
+				$guard_checked .= ' disabled="disabled"';
+			} # end if
+			push @user_html, qq~
+			<tr>
+				<td align="center">$delete</td>
+				<td><b>$row->{username}</b></td>
+				<td><input type="text" size="10" name="password-$sane_name" id="password-$sane_name" value="" autocomplete="off" /></td>
+				<td align="center"><input type="checkbox" name="admin-$sane_name" id="admin-$sane_name" $admin_checked /></td>
+				<td align="center"><input type="checkbox" name="guard-$sane_name" id="guard-$sane_name" $guard_checked /></td>
+			</tr>
+			~
+		} # end while
+		$sth->finish();
+		my $user_html = join '', @user_html;
+		use Data::Dumper;
+		$response->setBody(standardHTML({
+			header => 'Manage Admin/Guard Logins',
+			footer => undef,
+			body => qq~
+<br />
+<div class="cpanel-wrapper">
+<form method="post" action="$config->{CPanelScriptName}">
+<input type="hidden" name="action" value="save_logins" />
+<table id="cpanel-login-list" border="0" cellspacing="0" cellpadding="2" align="center">
+	<caption style="text-align: left;">
+	&laquo; <a href="$config->{CPanelScriptName}?action=intro">Back</a>
+	</caption>
+
+	<thead>
+		<tr>
+			<th>Del?</th>
+			<th>Username</th>
+			<th>Password</th>
+			<th>Admin?</th>
+			<th>Guard?</th>
+		</tr>
+	</thead>
+	<tbody>
+		$user_html
+		<tr>
+			<th colspan="5">Add New Login</th>
+			<tr>
+				<td>&nbsp;</td>
+				<td><input type="text" size="10" name="new-username" id="new-username" value="" /></td>
+				<td><input type="text" size="10" name="new-password" id="new-password" value="" autocomplete="off" /></td>
+				<td align="center"><input type="checkbox" name="new-admin" id="new-admin" checked="checked" /></td>
+				<td align="center"><input type="checkbox" name="new-guard" id="new-guard" checked="checked" /></td>
+			</tr>
+		</tr>
+	</tbody>
+</table>
+<br />
+<center>
+	<input type="submit" value="Save Changes" />
+</center>
+</form>
+</div>
+<br />
+~
+		}));
 	} # end action_logins
 
 
 # Save changes to logins
 	sub action_save_logins {
-		$response->setBody('You called action=save_logins');
+		my $dbh = getDBHandle();
+		$dbh->do('BEGIN TRANSACTION');
+		my $sth = $dbh->prepare('SELECT * FROM admin_users ORDER BY username ASC');
+		$sth->execute();
+		my @user_html;
+		while(my $row = $sth->fetchrow_hashref) {
+			if($row->{username} ne $session->{data}->{admin} && $in{'delete-' . $row->{username}}) {
+				$dbh->do('DELETE FROM admin_users WHERE username = ?', undef, $row->{username});
+				next;
+			} # end if
+		# Update admin/guard status for existing users *except* the current user
+			if($row->{username} ne $session->{data}->{admin}) {
+				$dbh->do(
+					'UPDATE admin_users SET is_admin = ?, is_guard = ? WHERE username = ?',
+					undef,
+					$in{'admin-' . $row->{username}},
+					$in{'guard-' . $row->{username}},
+					$row->{username}
+				);
+			} # end if
+		# Update password if needed
+			if($in{'password-' . $row->{username}} && length $in{'password-' . $row->{username}}) {
+				$dbh->do(
+					'UPDATE admin_users SET password = ? WHERE username = ?',
+					undef,
+					Digest::MD5::md5_hex($in{'password-' . $row->{username}}),
+					$row->{username}
+				);
+			} # end if
+		} # end while
+		$sth->finish();
+	# Do we have a new user to add?
+		my $err = '';
+		if($in{'new-username'} && $in{'new-password'} && ($in{'new-admin'} || $in{'new-guard'})) {
+			my($dupe_check,) = $dbh->selectrow_array('SELECT COUNT(*) FROM admin_users WHERE username = ?', undef, $in{'new-username'});
+			if(!$dupe_check) {
+				$dbh->do(
+					'INSERT INTO admin_users(username, password, is_admin, is_guard) VALUES(?,?,?,?)',
+					undef,
+					$in{'new-username'},
+					Digest::MD5::md5_hex($in{'new-password'}),
+					($in{'new-admin'} ? 1 : 0),
+					($in{'new-guard'} ? 1 : 0),
+				);
+			} else {
+				$err = 'Username already in use.';
+			} # end if
+		} # end if
+		$dbh->do('COMMIT');
+		$response->setBody("Saved.  $err");
 	} # end action_save_logins
-
-
-# Create a new login
-	sub action_new_login {
-		$response->setBody('You called action=new_login');
-	} # end action_new_login

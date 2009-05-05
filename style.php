@@ -331,6 +331,13 @@
 		border-top: 1px solid {$style['HRColor']};
 	}
 
+/* Control Panel Pages */
+	.cpanel-wrapper {
+		width: 660px;
+		text-align: left;
+		margin: auto;
+	}
+
 /* Control Panel Page: Settings */
 	#cpanel-settings {
 		font-size: 90%;
@@ -351,6 +358,19 @@
 	#cpanel-settings .l span {
 		font-weight: normal;
 		font-size: 80%;
+	}
+/* Control Panel Page: Login Manager */
+	#cpanel-login-list {
+		font-size: 90%;
+		border-collapse: collapse;
+	}
+	#cpanel-login-list tr {
+		border-top: 1px solid {$style['MultiChatBorder']};
+	}
+	#cpanel-login-list th {
+		color: {$style['HRColor']};
+		font-size: 120%;
+		border: 1px solid {$style['MultiChatBorder']};
 	}
 
 THESTYLESHEET;
