@@ -103,7 +103,7 @@ our $VERSION_TAG = '"Ingress"';
 			MessageLimit EnableCaptions DisableCaptionBR RefreshRate
 			DisableLamenessFilter TimeZoneCode TimeZoneName ChatName COPPAAge
 			CookiePrefix CheckProxyForward HttpBLAPIKey BannedRedirect
-			ChatPassword PasswordAttempts MultiChat
+			ChatPassword PasswordAttempts MultiChat CSSFile
 		~;
 		foreach my $setting (@migrate) {
 			$dbh->do('INSERT INTO settings(name,value) VALUES(?,?)', undef, $setting, $config->{$setting});
@@ -206,22 +206,7 @@ our $VERSION_TAG = '"Ingress"';
 	sub getConfigPlusDefaults {
 	# Pull the config out of the file
 		$config = getConfig();
-	# Reset paths and URLs.  These used to be configurable, but renaming key
-	# files tends to be a little on the dangerous and troublesome side of things.
-		$config->{Script} 			= 'chat3.cgi';
-		$config->{GuardScript} 		= 'guard3.cgi';
-		$config->{CPanelScript}		= 'control3.cgi';
-		$config->{CSSFile} 			= 'style.php';
-		$config->{MessagesFN} 		= 'messages';
-		$config->{MessagesFX}		= '.html';
-		$config->{DBFile}			= $config->{DatabasePath}	. '/chat3.sqlite';
-		$config->{ScriptName} 		= $config->{CGIURL} 		. "/" . $config->{Script};
-		$config->{GuardScriptName} 	= $config->{CGIURL} 		. "/" . $config->{GuardScript};
-		$config->{CPanelScriptName}	= $config->{CGIURL} 		. "/" . $config->{CPanelScript};
-		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
-		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
-		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
-		$config->{CSSName} 			= $config->{NonCGIURL} 		. "/" . $config->{CSSFile};
+		unbreakConfig();
 	# Now that we know where the database is, connect to it and pull out
 	# the settings it contains.
 		my $dbh = getDBHandle();
@@ -229,6 +214,8 @@ our $VERSION_TAG = '"Ingress"';
 			$config->{$row->[0]} = $row->[1];
 		} # end while
 	# Time to set up defaults.
+		$config->{CSSFile} ||= 'style.php';
+	# More defaults.
 	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
 	# Only reset the COPPA age if it actually has not been defined.
@@ -243,8 +230,6 @@ our $VERSION_TAG = '"Ingress"';
 		$config->{HttpBLAPIKey}	||= '',
 	# Don't redirect banned users by default
 		$config->{BannedRedirect} ||= '',
-	# The new database file has to have a name...
-		$config->{DBFile} ||= 'database/chat3.sqlite';
 	# No password.
 		$config->{ChatPassword} ||= '';
 		$config->{PasswordAttempts} ||= 3;
@@ -252,8 +237,27 @@ our $VERSION_TAG = '"Ingress"';
 		$config->{MultiChat} ||= 0;
 	# Always break after captions, if enabled.
 		$config->{DisableCaptionBR} ||= 0;
+		unbreakConfig();
 		return $config;
 	} # end getConfigPlusDefaults
+
+
+# Unbreak a broken config.
+	sub unbreakConfig {
+		$config->{Script} 			= 'chat3.cgi';
+		$config->{GuardScript} 		= 'guard3.cgi';
+		$config->{CPanelScript}		= 'control3.cgi';
+		$config->{MessagesFN} 		= 'messages';
+		$config->{MessagesFX}		= '.html';
+		$config->{DBFile}			= $config->{DatabasePath}	. '/chat3.sqlite';
+		$config->{ScriptName} 		= $config->{CGIURL} 		. "/" . $config->{Script};
+		$config->{GuardScriptName} 	= $config->{CGIURL} 		. "/" . $config->{GuardScript};
+		$config->{CPanelScriptName}	= $config->{CGIURL} 		. "/" . $config->{CPanelScript};
+		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
+		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
+		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
+		$config->{CSSName} 			= $config->{NonCGIURL} 		. "/" . $config->{CSSFile};
+	} # end unbreakConfig
 
 
 # Determine the current IP address of the remote user.  Trust X-Forwarded-For.
@@ -397,7 +401,7 @@ $ifoot
 <div class="footer">$_[0]->{footer}</div>
 $powered_by
 FORMAT
-			if($request->isAjax) {
+			if($request && $request->isAjax) {
 				my $data = $_[0];
 				$data->{standardhtml} = 1;
 				$response->addHeader('X-JSON', JSON::PP::encode_json($data));
@@ -405,7 +409,7 @@ FORMAT
 		} else {
 	# Otherwise it's just a simple message.
 			$text = join("", @_) . qq~<p class="copy">$pbstring</p>~;
-			if($request->isAjax) {
+			if($request && $request->isAjax) {
 				$response->addHeader('X-JSON', JSON::PP::encode_json({ 'html' => join('', @_), standardhtml => 1 }));
 			} # end if
 		} # end if

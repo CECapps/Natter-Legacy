@@ -239,6 +239,23 @@ WTB_TEMPLATE_LIBRARY_PST
 		my $PasswordAttempts = $config->{PasswordAttempts} + 0;
 	# BannedRedirect
 		my $BannedRedirect = CGI::escapeHTML($config->{BannedRedirect});
+	# CSSFile
+		my %css_files = (
+			'style.php' => 'default',
+			'style_blue.php' => 'Blue',
+			'style_bronze.php' => 'Bronze',
+			'style_orange.php' => 'Orange',
+		);
+		my $CSSFile = '';
+		foreach my $file (sort keys %css_files) {
+			$CSSFile .= '<option value="'
+			          . $file
+					  . '"'
+					  . ($config->{CSSFile} eq $file ? ' selected="selected"' : '')
+					  . '>'
+					  . $css_files{$file}
+					  . '</option>';
+		} # end foreach
 
 	# Emit the HTML.
 		$response->setBody(standardHTML({
@@ -314,6 +331,19 @@ WTB_TEMPLATE_LIBRARY_PST
 	</tr>
 
 	<tr><th colspan="2">Feature Settings</th></tr>
+
+	<tr><!-- CSSFile -->
+		<td class="l">
+			Stylesheet
+			<br />
+			<span>Which stylesheet file shall be used?</span>
+		</td>
+		<td valign="top">
+			<select id="CSSFile" name="CSSFile">
+				$CSSFile
+			</select>
+		</td>
+	</tr>
 
 	<tr><!-- MessageLimit -->
 		<td class="l">
@@ -487,7 +517,7 @@ YEGODS_SO_MUCH_HTML
 # Save changes to settings
 	sub action_save_settings {
 		my @string_settings = qw~
-			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword
+			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword CSSFile
 		~;
 		my @numeric_settings = qw~
 			MessageLimit RefreshRate COPPAAge PasswordAttempts
