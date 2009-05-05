@@ -19,7 +19,7 @@ use DateTime;
 use Socket;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.10.2';
+our $VERSION = '4.10.3';
 our $VERSION_TAG = '"Ingress"';
 
 
@@ -73,6 +73,7 @@ our $VERSION_TAG = '"Ingress"';
 	# alter table subroutines.
 		my $version_upgrade = {
 			1 => \&upgradeDatabase_Version1,
+			2 => \&upgradeDatabase_Version2,
 		};
 	# Go through the list, skipping upgrades that aren't needed.
 		foreach my $upgrade_version (sort { $a <=> $b } keys %$version_upgrade) {
@@ -86,6 +87,47 @@ our $VERSION_TAG = '"Ingress"';
 # Dummy sub for the DB version 1 upgrade.
 	sub upgradeDatabase_Version1 {
 	} # end upgradeDatabase_Version1
+
+
+# DB version 2: Settings and logins are now stored in the database
+	sub upgradeDatabase_Version2 {
+	# Settings table
+		$dbh->do('
+			CREATE TABLE settings (
+				name		TEXT,
+				value		TEXT
+			)
+		');
+		$dbh->do('CREATE UNIQUE INDEX name ON settings(name)');
+		my @migrate = qw~
+			MessageLimit EnableCaptions DisableCaptionBR RefreshRate
+			DisableLamenessFilter TimeZoneCode TimeZoneName ChatName COPPAAge
+			CookiePrefix CheckProxyForward HttpBLAPIKey BannedRedirect
+			ChatPassword PasswordAttempts MultiChat
+		~;
+		foreach my $setting (@migrate) {
+			$dbh->do('INSERT INTO settings(name,value) VALUES(?,?)', undef, $setting, $config->{$setting});
+		} # end foreach
+	# Logins table
+		$dbh->do('
+			CREATE TABLE admin_users (
+				username	TEXT,
+				password	TEXT,
+				is_admin	INT,
+				is_guard	INT
+			)
+		');
+		$dbh->do('CREATE UNIQUE INDEX username ON admin_users(username)');
+		my $guard_list = getGuardList();
+		foreach my $guard (keys %$guard_list) {
+			$dbh->do(
+				'INSERT INTO admin_users(username,password,is_admin,is_guard) VALUES(?,?,1,1)',
+				undef,
+				$guard,
+				Digest::MD5::md5_hex($guard_list->{$guard})
+			);
+		} # end foreach
+	} # end upgradeDatabase_Version2
 
 
 # Create tables in the SQLite database
@@ -160,9 +202,33 @@ our $VERSION_TAG = '"Ingress"';
 
 # Load the configuration, plus attempt to set defaults for things that have not
 # been configured.  This is due to the configuration file not being properly
-# updatable in new configs, and a lack of a control panel thing.
+# updatable during upgrades.
 	sub getConfigPlusDefaults {
-		$config = &getConfig();
+	# Pull the config out of the file
+		$config = getConfig();
+	# Reset paths and URLs.  These used to be configurable, but renaming key
+	# files tends to be a little on the dangerous and troublesome side of things.
+		$config->{Script} 			= 'chat3.cgi';
+		$config->{GuardScript} 		= 'guard3.cgi';
+		$config->{CPanelScript}		= 'control3.cgi';
+		$config->{CSSFile} 			= 'style.php';
+		$config->{MessagesFN} 		= 'messages';
+		$config->{MessagesFX}		= '.html';
+		$config->{DBFile}			= $config->{DatabasePath}	. '/chat3.sqlite';
+		$config->{ScriptName} 		= $config->{CGIURL} 		. "/" . $config->{Script};
+		$config->{GuardScriptName} 	= $config->{CGIURL} 		. "/" . $config->{GuardScript};
+		$config->{CPanelScriptName}	= $config->{CGIURL} 		. "/" . $config->{CPanelScript};
+		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
+		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
+		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
+		$config->{CSSName} 			= $config->{NonCGIURL} 		. "/" . $config->{CSSFile};
+	# Now that we know where the database is, connect to it and pull out
+	# the settings it contains.
+		my $dbh = getDBHandle();
+		foreach my $row (@{$dbh->selectall_arrayref('SELECT name,value FROM settings')}) {
+			$config->{$row->[0]} = $row->[1];
+		} # end while
+	# Time to set up defaults.
 	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
 	# Only reset the COPPA age if it actually has not been defined.

@@ -1,5 +1,13 @@
 Natter Changelog
 
+Version: 4.10.3
+Date: May 4, 2009
+ - The control panel is finally here!  All configurable settings are now stored
+   in the SQLite database, and can now be changed through the control panel.
+   No more editing config.cgi with every release!
+ - User management added to control panel.  Admin users may now add or remove
+   admins and guards, as well as set and reset passwords.
+
 Version: 4.10.2
 Date: April 30, 2009
  - The [monger] markup is back, and has a new alias: [gradient].  Pass a comma

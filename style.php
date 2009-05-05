@@ -137,7 +137,7 @@
 	.messageline.welcome .star { color: {$style['TextColor']}; }
 
 /* Posting form */
-	.button, .textbox, .textarea {
+	.button, .textbox, .textarea, input[type=submit], input[type=button], input[type=text], select, textarea {
 		background-color : {$style['BGColor']};
 		border: 1px solid {$style['BorderColor']};
 		font-size : 11px;
@@ -161,10 +161,14 @@
 	}
 
 /* Hover magic for browsers that don't understand non-anchor based hover/focus is provided via jQuery */
-	.textbox:hover, .textarea:hover, .button:hover, .textbox.hover, .textarea.hover, .button.hover {
+	.textbox:hover, .textarea:hover, .button:hover, .textbox:hover, .textarea:hover, .button:hover,
+	input[type=submit]:hover, input[type=button]:hover, input[type=text]:hover, select:hover, textarea:hover {
 		border-color: {$style['HRColor']};
 	}
-	.textbox:focus, .textarea:focus, .button:focus, .textbox.focus, .textarea.focus, .button.focus {
+	.textbox:focus, .textarea:focus, .button:focus, .textbox.focus, .textarea.focus, .button.focus,
+	input[type=submit]:focus, input[type=button]:focus, input[type=text]:focus, select:focus, textarea:focus,
+	.textbox:active, .textarea:active, .button:active,
+	input[type=submit]:active, input[type=button]:active, input[type=text]:active, select:active, textarea:active {
 		border-color: {$style['HRColor2']};
 		background-color: {$style['BGLightColor']};
 	}
@@ -325,6 +329,28 @@
 	}
 	.banlist th {
 		border-top: 1px solid {$style['HRColor']};
+	}
+
+/* Control Panel Page: Settings */
+	#cpanel-settings {
+		font-size: 90%;
+		border-collapse: collapse;
+	}
+	#cpanel-settings tr {
+		border-top: 1px solid {$style['MultiChatBorder']};
+	}
+	#cpanel-settings th {
+		color: {$style['HRColor']};
+		font-size: 120%;
+		border: 1px solid {$style['MultiChatBorder']};
+	}
+	#cpanel-settings .l {
+		font-weight: bold;
+		font-size: 105%;
+	}
+	#cpanel-settings .l span {
+		font-weight: normal;
+		font-size: 80%;
 	}
 
 THESTYLESHEET;

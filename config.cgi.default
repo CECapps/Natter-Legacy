@@ -31,45 +31,16 @@ sub getConfig {
 		NonCGIPath 		=> $basepath . $pubdirname,
 		LogsPath 		=> $basepath . $pubdirname . q!/logs!,
 		DatabasePath	=> $basepath . $pubdirname . q!/database!,
-	# Options
-		MessageLimit	=> 15,
-		EnableCaptions	=> 0,
-		DisableCaptionBR => 1,
-		RefreshRate 	=> 8,
-		DisableLamenessFilter => 0,
-		TimeZoneCode	=> 'America/Los_Angeles', # see http://en.wikipedia.org/wiki/List_of_zoneinfo_time_zones
-		TimeZoneName 	=> 'Pacific',
-		ChatName		=> q!CHAT NAME GOES HERE!,
-		COPPAAge		=> 13,
-		CookiePrefix	=> 'chat',
-		CheckProxyForward => 1,
-		HttpBLAPIKey	=> '',
-		BannedRedirect	=> '',
-		ChatPassword	=> '',
-		PasswordAttempts => 3,
-		MultiChat		=> 0,
 	};
-
-# Options based on configurations.  Don't touch this.
-	$z->{Script} 		= 'chat3.cgi';
-	$z->{GuardScript} 	= 'guard3.cgi';
-	$z->{CSSFile} 		= 'style.php';
-	$z->{MessagesFN} 	= 'messages';
-	$z->{MessagesFX} 	= '.html';
-	$z->{DBFile}			= $z->{DatbasePath} . '/chat3.sqlite';
-	$z->{ScriptName} 		= $z->{CGIURL} 		. "/" . $z->{Script};
-	$z->{GuardScriptName} 	= $z->{CGIURL} 		. "/" . $z->{GuardScript};
-	$z->{MessagesFile} 		= $z->{NonCGIPath} 	. "/" . $z->{MessagesFN} . $z->{MessagesFX};
-	$z->{MessagesName} 		= $z->{NonCGIURL} 	. "/" . $z->{MessagesFN} . $z->{MessagesFX};
-	$z->{PostlogFile} 		= $z->{NonCGIPath} 	. "/" . $z->{MessagesFN} . "_bans.cgi";
-	$z->{CSSName} 			= $z->{NonCGIURL} 	. "/" . $z->{CSSFile};
 
 	return $z;
 } # end sub
 
 sub getGuardList {
+# This is the default admin login.  Once you log in to the control panel,
+# please change the password as soon as possible!  Do not add users here.
 	my $gl = {
-		"Guard" => "password1",
+		'Admin5' => '4tugboat',
 	};
 	return $gl;
 } # end sub

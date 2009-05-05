@@ -49,6 +49,7 @@ package Natter::Session;
 			kick_by			=> undef,
 			kick_reason		=> undef,
 			guard			=> undef,
+			admin			=> undef,
 		};
 		$self->recreateId();
 	} # end create
