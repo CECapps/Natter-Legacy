@@ -517,7 +517,7 @@ YEGODS_SO_MUCH_HTML
 # Save changes to settings
 	sub action_save_settings {
 		my @string_settings = qw~
-			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword CSSFile
+			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword CSSFile CookiePrefix
 		~;
 		my @numeric_settings = qw~
 			MessageLimit RefreshRate COPPAAge PasswordAttempts
