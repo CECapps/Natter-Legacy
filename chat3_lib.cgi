@@ -19,7 +19,7 @@ use DateTime;
 use Socket;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.10.3';
+our $VERSION = '4.10.4';
 our $VERSION_TAG = '"Ingress"';
 
 

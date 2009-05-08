@@ -435,10 +435,14 @@ COPPA_CHECK
 		return $value unless $starts == $ends;
 
 		# Forcefully reformat the tag
-		$value =~ s!&lt;span[^>]*style=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span style="$1">$2</span>!gis;
-		$value =~ s!&lt;span[^>]*class=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span class="$1">$2</span>!gis;
-		$value =~ s!&lt;span[^>]*id=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span id="$1">$2</span>!gis;
-		$value =~ s!&lt;span[^>]*title=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span title="$1">$2</span>!gis;
+		my $reformat = 1;
+		while($reformat > 0) {
+			$reformat = 0;
+			$reformat++ if $value =~ s!&lt;span[^>]*style=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span style="$1">$2</span>!gis;
+			$reformat++ if $value =~ s!&lt;span[^>]*class=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span class="$1">$2</span>!gis;
+			$reformat++ if $value =~ s!&lt;span[^>]*id=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span id="$1">$2</span>!gis;
+			$reformat++ if $value =~ s!&lt;span[^>]*title=\"([^\"\'\`]+?)\"[^>]*>(.*?)&lt;/span>!<span title="$1">$2</span>!gis;
+		} # end while
 
 		return $value;
 	} # end formatHTMLspan
@@ -474,9 +478,18 @@ COPPA_CHECK
 		return $this unless $this =~ m/\[.+\]/;
 	# Grab a subset of BBCode
 		my $match = 1;
-		while($match != 0) {
+		my $cycles = 0;
+		while($match != 0 && $cycles < 100) {
+			$cycles++;
 			$match = 0;
 			$match++ if $this =~ s/(\[(monger|gradient)(=([a-zA-Z0-9\,\#]+))?\])(.+?)\[\/(?:monger|gradient)\]/formatMongerMarkup($4, $5)/isge;
+			$match++ if $this =~ s/(\[color(=([a-zA-Z0-9\,\#]+))\])(.+?)\[\/color\]/formatColorMarkup($3, $4)/isge;
+			$match++ if $this =~ s/\[small\](.+?)\[\/small\]/<span style="font-size: 85%;">$1<\/span>/isg;
+			$match++ if $this =~ s/\[big\](.+?)\[\/big\]/<span style="font-size: 120%;">$1<\/span>/isg;
+			$match++ if $this =~ s/\[s(?:trike)?\](.+?)\[\/s(?:trike)?\]/<span style="text-decoration: line-through">$1<\/span>/isg;
+			$match++ if $this =~ s/\[u(?:nder(?:line)?)?\](.+?)\[\/u(?:nder(?:line)?)?\]/<span style="text-decoration: underline">$1<\/span>/isg;
+			$match++ if $this =~ s/\[sub(?:script)?\](.+?)\[\/sub(?:script)?\]/<sub>$1<\/sub>/isg;
+			$match++ if $this =~ s/\[sup(?:er(?:script)?)?\](.+?)\[\/sup(?:er(?:script)?)?\]/<sup>$1<\/sup>/isg;
 			$match++ if $this =~ s/(\[URL\])(http|https|ftp)(:\/\/\S+?)(\[\/URL\])/ <a href="$2$3" target="_blank">$2$3<\/a> /isg;
 			$match++ if $this =~ s/(\[URL\])(\S+?)(\[\/URL\])/ <a href="http:\/\/$2" target="_blank">$2<\/a> /isg;
 			$match++ if $this =~ s/(\[URL=)(http|https|ftp)(:\/\/\S+?)(\])(.+?)(\[\/URL\])/<a href="$2$3" target="_blank">$5<\/a>/isg;
@@ -487,6 +500,18 @@ COPPA_CHECK
 		} # end while
 		return $this;
 	} # end formatMarkup
+
+# Set an HTML color (via markup)
+	sub formatColorMarkup {
+		my @colors = map { fix_color($_) } split /\,/, shift;
+		my $text = shift;
+		if(scalar @colors == 1) {
+			return qq~<span style="color: $colors[0]">$text</span>~;
+		} elsif(scalar @colors == 2) {
+			return qq~<span style="color: $colors[0]; background-color: $colors[1]">$text</span>~;
+		} # en dif
+		return $text;
+	} # end formatColorMarkup
 
 # Generate an HTML gradient (via markup)
 	sub formatMongerMarkup {

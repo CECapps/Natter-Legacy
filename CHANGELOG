@@ -1,7 +1,21 @@
 Natter Changelog
 
+Version: 4.10.4
+Date: May 7, 2009
+ - New BBCodes have been added:
+	- [small] makes text smaller.  Small can be nested ([small][small]...[/small][/small])
+	  to make text smaller and smaller.
+	- [big] makes text bigger.  Big can be nested, just like small.
+	- [color=(foreground)] will make text the specified color.
+	- [color=(foreground),(background)] will make text the specified color, over
+	  the specified background color.
+	- [s] and [strike] produce struck-through text
+	- [u] and [under] and [underline] produce underlined text
+	- [sub] and [subscript] produce subscript
+	- [sup] and [super] and [superscript] produce superscript
+
 Version: 4.10.3
-Date: May 4, 2009
+Date: May 5, 2009
  - The control panel is finally here!  All configurable settings are now stored
    in the SQLite database, and can now be changed through the control panel.
    No more editing config.cgi with every release!
