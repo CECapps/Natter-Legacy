@@ -1048,13 +1048,13 @@ multichat.init();
 		my $namecolor = $in{'color'};
 		my $msgcolor = ( $in{'mcolor'} ne "Message Color" ? $in{'mcolor'} : $namecolor );
 		$msgcolor = $namecolor unless $msgcolor;
-		my $linkhtml = ( $in{'url'} ne "URL" ? qq(<a href="$in{'url'}" target="_blank" class="url"><font color="$namecolor" face="Wingdings">2</font></a>) : "" );
+		my $linkhtml = ( $in{'url'} ne "URL" ? qq(<a href="$in{'url'}" target="_blank" class="url" style="background-color: $in{'color'}">&nbsp;</a>) : "" );
 		my $captionhtml = ( ($in{'caption'} && ($in{'caption'} ne "Caption")&& ($in{'caption'} ne "E-Mail")) ? qq!<font color="$namecolor"><i>($in{'caption'})</i></font>! : "" );
 	# If captions are disabled, add the email address to the link
 		if(!$config->{EnableCaptions}) {
 			$captionhtml = '';
 			if($in{'caption'} && $in{'caption'} ne "E-Mail") {
-				$linkhtml .= ( $in{'caption'} ne "E-Mail" ? qq(<a href="mailto:$in{'caption'}" class="email"><font color="$namecolor" face="Wingdings">*</font></a>) : "" );
+				$linkhtml .= ( $in{'caption'} ne "E-Mail" ? qq(<a href="mailto:$in{'caption'}" class="email" style="background-color: $in{'color'}">&nbsp;</a>) : "" );
 			} # end if
 		} # end if
 		my $dt = getTime();

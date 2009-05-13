@@ -128,10 +128,35 @@
 	.thetime { font-size: 80%; font-family: Verdana, Arial, Helvetica, sans-serif }
 	.themessage { font-size: 100%; font-family: Verdana, Arial, Helvetica, sans-serif }
 /* Links in the message line */
-	a.url { background-color: black; border: 1px solid black; font-family: Wingdings; text-decoration: underline; }
-	a.email { background-color: black; border: 1px solid black; font-family: Wingdings; text-decoration: underline; }
-	a:hover.url { background-color: black; border: 1px solid black; font-family: Wingdings; text-decoration: underline;}
-	a:hover.email { background-color: black; border: 1px solid black; font-family: Wingdings; text-decoration: underline; }
+	a.url, a.email {
+		border: 0px;
+		margin: 0px;
+		padding: 0px;
+		margin-left: 2px;
+		margin-right: 2px;
+		text-decoration: none;
+		background-repeat: no-repeat;
+		background-position: top left;
+		display: -moz-inline-block;
+		display: inline-block;
+	}
+	a.url {
+		font-size: 10px;
+		height: 13px;
+		width: 10px;
+		background-image: url(wingdings-letter.png);
+	}
+	a.email {
+		font-size: 10px;
+		height: 13px;
+		width: 17px;
+		background-image: url(wingdings-envelope.png);
+	}
+	a:hover.url, a:hover.email {
+		border: 0px;
+		background-color: white !important;
+	}
+
 /* New user welcome */
 	.messageline.welcome { color: {$style['DarkTextColor']}; }
 	.messageline.welcome .star { color: {$style['TextColor']}; }
