@@ -93,7 +93,8 @@
 	.timeline { font-size: 10px; color: {$style['TimeColor']}; text-align: left }
 	.name { font-size: 125%; font-family: Times New Roman, Times Roman, Times, serif }
 	hr { background-color: {$style['HRColor']}; color: {$style['HRColor']}; border: 0px; }
-
+	h1, h3, h5 { color: {$style['HRColor']}; }
+	h2, h4, h6 { color: {$style['HRColor2']}; }
 
 /* Fucking IE needs a fucking hack because it doesn't understand transparent borders. */
 	*html a:link, *html a:visited { border-color: {$style['BGColor']};  }
