@@ -1,19 +1,23 @@
 Natter Changelog
 
 Version: 4.10.5
-Date: May 13, 2009
- - All static HTML files to render the chat frameset have been replaced with
+Date: June 3, 2009
+ - **WIP** All static HTML files to render the chat frameset have been replaced with
    PHP scripts.  The HTML files now contain a meta refresh to the appropriate
    PHP script.
- - PHP scripts require the "config.inc.php" file, which you will need to modify.
+ - **WIP** PHP scripts require the "config.inc.php" file, which you will need to modify.
    The only settings it will require can be copied directly from the config.cgi
    file.  You should only need to do this once, as the PHP scripts will use the
    configuration tables in the database.
- - Styles are now adjustable from the control panel.  You can edit an existing
+ - **WIP** Styles are now adjustable from the control panel.  You can edit an existing
    style, create new styles, etc.
  - The URL and Email links in chat are now rendered using images instead of
    Wingdings glyphs.  This should resolve a few rendering issues in Firefox on
    Windows and Mac.
+ - The chat may now be closed, with a closed message defined in the control panel.
+ - The Caption field now accepts markup and HTML.  MultiChat no longer uber-encodes
+   things that Perl's JSON module decides should be encoded (a violation of the
+   JSON spec which I may eventually get around to filing a bug for).
 
 Version: 4.10.4
 Date: May 7, 2009

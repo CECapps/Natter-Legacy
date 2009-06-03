@@ -239,6 +239,12 @@ WTB_TEMPLATE_LIBRARY_PST
 		my $PasswordAttempts = $config->{PasswordAttempts} + 0;
 	# BannedRedirect
 		my $BannedRedirect = CGI::escapeHTML($config->{BannedRedirect});
+	# ChatClosed messages
+		my $ChatClosedHeader = CGI::escapeHTML($config->{ChatClosedHeader});
+		my $ChatClosedBody = CGI::escapeHTML($config->{ChatClosedBody});
+		my $ChatClosedFooter = CGI::escapeHTML($config->{ChatClosedFooter});
+	# ChatClosed
+		my $ChatClosedChecked = $config->{ChatClosed} ? ' checked="checked"' : '';
 	# CSSFile
 		my %css_files = (
 			'style.php' => 'default',
@@ -327,6 +333,45 @@ WTB_TEMPLATE_LIBRARY_PST
 		</td>
 		<td valign="top">
 			<input type="text" name="TimeZoneName" id="TimeZoneName" value="$TimeZoneName" size="15" />
+		</td>
+	</tr>
+
+	<tr><!-- ChatClosed -->
+		<td class="l">
+			Chat Closed?
+			<br />
+			<span>If you need to shut down the chat for a period of time, enable
+			this and fill out a reason in the next few fields.</span>
+		</td>
+		<td valign="top">
+			<input type="checkbox" name="ChatClosed" id="ChatClosed" value="1" $ChatClosedChecked />
+		</td>
+	</tr>
+
+	<tr><!-- ChatClosedHeader -->
+		<td class="l">
+			Chat Closed: Message Heading
+		</td>
+		<td valign="top">
+			<input type="text" name="ChatClosedHeader" id="ChatClosedHeader" value="$ChatClosedHeader" size="30" />
+		</td>
+	</tr>
+	
+	<tr><!-- ChatClosedBody -->
+		<td class="l" valign="top">
+			Chat Closed: Message
+		</td>
+		<td valign="top">
+			<textarea name="ChatClosedBody" id="ChatClosedBody" cols="28" rows="3">$ChatClosedBody</textarea>
+		</td>
+	</tr>
+
+	<tr><!-- ChatClosedFooter -->
+		<td class="l">
+			Chat Closed: Message Footer
+		</td>
+		<td valign="top">
+			<input type="text" name="ChatClosedFooter" id="ChatClosedFooter" value="$ChatClosedFooter" size="30" />
 		</td>
 	</tr>
 
@@ -517,13 +562,14 @@ YEGODS_SO_MUCH_HTML
 # Save changes to settings
 	sub action_save_settings {
 		my @string_settings = qw~
-			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword CSSFile CookiePrefix
+			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword
+			CSSFile CookiePrefix ChatClosedHeader ChatClosedBody ChatClosedFooter
 		~;
 		my @numeric_settings = qw~
 			MessageLimit RefreshRate COPPAAge PasswordAttempts
 		~;
 		my @bool_settings = qw~
-			EnableCaptions CheckProxyForward MultiChat
+			EnableCaptions CheckProxyForward MultiChat ChatClosed
 		~;
 		my @negative_bool_settings = qw~
 			DisableLamenessFilter DisableCaptionBR

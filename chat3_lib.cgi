@@ -237,6 +237,12 @@ our $VERSION_TAG = '"Ingress"';
 		$config->{MultiChat} ||= 0;
 	# Always break after captions, if enabled.
 		$config->{DisableCaptionBR} ||= 0;
+	# The chat is open by default
+		$config->{ChatClosed} ||= 0;
+	# Set the default closed message
+		$config->{ChatClosedHeader} ||= 'Chat Closed';
+		$config->{ChatClosedBody} ||= 'This chat is currently closed.  Please try again later.';
+		$config->{ChatClosedFooter} ||= '';
 		unbreakConfig();
 		return $config;
 	} # end getConfigPlusDefaults

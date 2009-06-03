@@ -87,6 +87,9 @@ require "chat3_lib.cgi";
 		$in{action} = $config->{ChatPassword} ? 'password_prompt' : 'intro';
 	} # end if
 
+# Is the chat open?  If not, we'll want to display the closed message instead.
+	$in{action} = 'closed' if($config->{ChatClosed});
+
 # Set up a list of valid subroutines that the outside world can get to...
 	my %actions = (
 		intro => \&action_intro,
@@ -94,6 +97,7 @@ require "chat3_lib.cgi";
 		post => \&action_post,
 		password_prompt => \&action_password_prompt,
 		password_check => \&action_password_check,
+		closed => \&action_closed,
 	);
 
 # ... then do the right one.
@@ -117,6 +121,15 @@ require "chat3_lib.cgi";
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # action_ subroutines
+
+# If the chat is closed, let the user know.
+	sub action_closed {
+		$response->setBody(standardHTML({
+			header => $config->{ChatClosedHeader},
+			body => $config->{ChatClosedBody},
+			footer => $config->{ChatClosedFooter}
+		}));
+	} # end action_closed
 
 # If passwords are enabled, prompt the user to enter one
 	sub action_password_prompt {
@@ -322,6 +335,7 @@ COPPA_CHECK
 	# Process markup in message and name
 		$filter{'message'} = formatMarkup($filter{'message'});
 		$filter{'username'} = formatMarkup($filter{'username'});
+		$filter{'caption'} = formatMarkup($filter{'caption'});
 
 	# Filters for URL
 		if($filter{'url'} ne "URL") {
@@ -855,6 +869,11 @@ multichat = {
 	updateForm: function(data, skip_data_update, clobber_message) {
 		$.each(data, function(index, value){
 			if(!clobber_message && index == 'message') return;
+		// The caption ends to get rather, uh, over-encoded.
+			if(index == 'caption') {
+			// Create a temporary textarea and use to perform HTML entity decoding.
+				value = $('<textarea/>').html(value).val();
+			}  // end if
 			var el = $('#' + index);
 			if(el) {
 				el.attr('value', value);
