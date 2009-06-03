@@ -147,7 +147,7 @@ require "chat3_lib.cgi";
 		my $last_try = $record->[1] + 0;
 	# Reset their tries after half an hour
 		my $now = time();
-		$tries = 0 if($last_try < $now - (60 * 30));
+		$tries = 0 if($last_try < $now - (60 * $config->{PasswordLockoutTime}));
 	# Too many tries?  No entry for you.
 		noEntry_TooManyTries() if($tries >= $config->{PasswordAttempts});
 	# How many tries are left?

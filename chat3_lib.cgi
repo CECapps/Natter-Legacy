@@ -233,6 +233,7 @@ our $VERSION_TAG = '"Ingress"';
 	# No password.
 		$config->{ChatPassword} ||= '';
 		$config->{PasswordAttempts} ||= 3;
+		$config->{PasswordLockoutTime} ||= 30;
 	# MultiChat is disabled by default
 		$config->{MultiChat} ||= 0;
 	# Always break after captions, if enabled.

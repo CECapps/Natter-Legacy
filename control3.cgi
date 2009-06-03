@@ -237,6 +237,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		my $ChatPassword = CGI::escapeHTML($config->{ChatPassword});
 	# PasswordAttempts
 		my $PasswordAttempts = $config->{PasswordAttempts} + 0;
+	# PasswordLockoutTime
+		my $PasswordLockoutTime = $config->{PasswordLockoutTime} + 0;
 	# BannedRedirect
 		my $BannedRedirect = CGI::escapeHTML($config->{BannedRedirect});
 	# ChatClosed messages
@@ -532,6 +534,19 @@ WTB_TEMPLATE_LIBRARY_PST
 		</td>
 	</tr>
 
+	<tr><!-- PasswordLockoutTime -->
+		<td class="l">
+			Password Lockout Time
+			<br />
+			<span>If users fail entering the password enough times to be locked
+			out, how long (in minutes) should they be locked out before being
+			allowed to try again?</span>
+		</td>
+		<td valign="top">
+			<input type="text" name="PasswordLockoutTime" id="PasswordLockoutTime" value="$PasswordLockoutTime" size="3" />
+		</td>
+	</tr>
+
 	<tr><!-- BannedRedirect -->
 		<td class="l">
 			Banned Redirect URL
@@ -566,7 +581,7 @@ YEGODS_SO_MUCH_HTML
 			CSSFile CookiePrefix ChatClosedHeader ChatClosedBody ChatClosedFooter
 		~;
 		my @numeric_settings = qw~
-			MessageLimit RefreshRate COPPAAge PasswordAttempts
+			MessageLimit RefreshRate COPPAAge PasswordAttempts PasswordLockoutTime
 		~;
 		my @bool_settings = qw~
 			EnableCaptions CheckProxyForward MultiChat ChatClosed
