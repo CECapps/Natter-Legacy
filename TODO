@@ -1,0 +1,54 @@
+Natter TODO
+
+4.10
+ - Move all .html files to .php
+ - Control panel styles
+
+4.11
+ - Death to the White Flash.  Rebuild message frame to add posts via AJAX and
+   polling rather than use meta refresh.  Evaluate continuing to write the
+   messages.html file as a fallback for proxies / bots.
+ - Chat roster for the right frame.  Presence API for proxies / bots.
+ - Ignore list (session-based)
+ - Private whispers?
+
+
+5.0 (Goal: PHP port)
+ - Quick & dirty port of control panel and guard scripts to PHP
+
+5.1
+ - Refactor & cleanup from Port
+
+5.2
+ - Quick & dirty port of main chat script to PHP
+
+5.3
+ - Refactor & cleanup from Port
+ - Split out HTML from code (templateize)
+
+5.4
+ - MySQL port
+ - Posgres port
+ - Store logs in database (MySQL & Postgres only?  Evaluate SQLite log browse / add performance for large logs.)
+ - Improved log browser.  Search by date, post content, username.  Post history by username.
+ - Last second features, if anyone can come up with anything compelling.
+
+
+6.0 (Goal: Production API)
+ - Minimal user registration
+ - Chat profile saving
+ - Pink API draft
+
+6.1
+ - Pink adapters for v, In, pB, SM, OC?, eSi? (lol)
+
+6.2
+ - Sky API development, retire messages.html
+ - Oh gods, I'd need to rewrite Feenix AGAIN.  Maybe I shouldn't do Sky's API.
+
+6.3
+ - Chiffon API development.  AWS?
+ - Chiffon related refactor into various components for release and non-release.
+
+7.0 (Goal: $$$)
+ - This is 1.0.
