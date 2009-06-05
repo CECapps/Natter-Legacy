@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Natter 4.10
+# Natter 5.0
 # Copyright 1999-2009 Charles Capps
 #
 # This software is covered by a license agreement.
@@ -19,8 +19,8 @@ use DateTime;
 use Socket;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '4.10.4';
-our $VERSION_TAG = '"Ingress"';
+our $VERSION = '5.0.0';
+our $VERSION_TAG = '"Trespass"';
 
 
 # Create a "Powered By" HTML blub

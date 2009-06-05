@@ -1,0 +1,35 @@
+<?php
+/**
+ * Natter 4.10
+ * Copyright 1999-2009 Charles Capps
+ *
+ * This software is covered by a license agreement.
+ * If you do not have a license for this software, please
+ * contact <capps@solareclipse.net> immediately.
+ *
+ * Using this software without a valid license is a violation
+ * of the author's rights and is often illegal.
+ *
+ * Distribution of this script is stricly prohibited.
+ *
+ * Questions?  Comments?  <capps@solareclipse.net>
+ **/
+
+# Quick configuration for sane virtual hosting.  You may need to massively rewrite this
+# if you need to put CGI scripts in an external cgi-bin directory.
+	$baseurl = 'http://www.example.com';
+	$basepath = '/home/example.com/public_html';
+	$pubdirname = '/chat';
+
+	global $config;
+	$config = array(
+	// URLs
+		CGIURL 			=> $baseurl . $pubdirname,
+		NonCGIURL 		=> $baseurl . $pubdirname,
+		LogsURL 		=> $baseurl . $pubdirname . '/logs',
+	// Paths
+		CGIPath 		=> $basepath . $pubdirname,
+		NonCGIPath 		=> $basepath . $pubdirname,
+		LogsPath 		=> $basepath . $pubdirname . '/logs',
+		DatabasePath	=> $basepath . $pubdirname . '/database',
+	);

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Natter 4.10
+# Natter 5.0
 # Copyright 1999-2009 Charles Capps
 #
 # This software is covered by a license agreement.
