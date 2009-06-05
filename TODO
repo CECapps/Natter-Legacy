@@ -1,11 +1,11 @@
 Natter TODO
 
-5.0 (Goal: PHP port, Codename "Transgression")
+5.0 (Goal: PHP port, Codename "Trespass")
  - PHP framework
  - Move all .html files to .php
  - Control panel styles
 
-5.1
+5.1 (Codename: "Transgression")
  - Death to the White Flash.  Rebuild message frame to add posts via AJAX and
    polling rather than use meta refresh.  Evaluate continuing to write the
    messages.html file as a fallback for proxies / bots.
@@ -13,21 +13,20 @@ Natter TODO
  - Ignore list (session-based)
  - Private whispers?
 
-
-5.2
+5.2 (Codename: "Undermine")
  - Quick & dirty port of control panel and guard scripts to PHP
 
 5.3
  - Refactor & cleanup from Port
 
-5.4
+5.4 (Codename: "Assassin")
  - Quick & dirty port of main chat script to PHP
 
 5.5
  - Refactor & cleanup from Port
  - Split out HTML from code (templateize)
 
-5.6
+5.6 (Codename: "Assassout")
  - MySQL port
  - Posgres port
  - Store logs in database (MySQL & Postgres only?  Evaluate SQLite log browse / add performance for large logs.)
@@ -40,17 +39,17 @@ Natter TODO
  - Chat profile saving
  - Pink API draft
 
-6.1
+6.1 (Codemame: "Pink")
  - Pink adapters for v, In, pB, SM, OC?, eSi? (lol)
 
-6.2
+6.2 (Codename: "Sky")
  - Sky API development, retire messages.html
  - Oh gods, I'd need to rewrite Feenix AGAIN.  Maybe I shouldn't do Sky's API.
 
-6.3
+6.3 (Codename: "Chiffon")
  - Chiffon API development.  AWS?
  - Chiffon related refactor into various components for release and non-release.
 
 
-7.0 (Goal: $$$, Codename "Robert")
+7.0 (Goal: $$$, Codename "Production")
  - This is 1.0.
