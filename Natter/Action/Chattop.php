@@ -15,7 +15,7 @@
  * Questions?  Comments?  <capps@solareclipse.net>
  **/
 
-class Natter_Action_Index implements Natter_Action {
+class Natter_Action_Chattop implements Natter_Action {
 
 /** @property Natter_HTTPRequest */
 	protected $request;
@@ -32,17 +32,8 @@ class Natter_Action_Index implements Natter_Action {
 
 	public function run() {
 		global $config;
-	// We use the "index" template.  Derf.
-		$template = new Natter_Template('index');
-
-	// We only exist to provide a frameset.  The chat name goes in the title tag.
-		$template->chat_name = $config['ChatName'];
-	// Do we display a chat top frame?
-		$config['ChatTopFrameHeight'] = 65;
-		$template->show_chat_top = $config['ChatTopFrameHeight'] > 0 ? true : false;
-		$template->chat_top_pixels = $config['ChatTopFrameHeight'];
-	// Do we have a static HTML file for the chat top?
-		$template->chat_top_file = file_exists($config['NonCGIPath'] . '/chattop.html') ? 'chattop.html' : 'index.php?action=chattop';
+	// We use the "chattop" template.  Herf.
+		$template = new Natter_Template('chattop');
 
 		$html = $template->render();
 		$this->response->setBody($html);

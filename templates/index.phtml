@@ -4,14 +4,11 @@
 <head>
 	<title><?php echo $this->chat_name; ?></title>
 </head>
-<frameset rows="65,*,130" border="0">
-	<frame src="chattop.html" name="eltop" scrolling="no">
+<frameset rows="<?php echo ($this->show_chat_top ? $this->chat_top_pixels . ',*,130' : '*,130'); ?>" border="0">
+<?php if($this->show_chat_top): ?>
+	<frame src="<?php echo $this->chat_top_file; ?>" name="eltop" scrolling="no">
+<?php endif; ?>
 	<frame src="messages.html" name="messages" scrolling="auto">
 	<frame src="chat3.cgi" name="input" scrolling="no">
 </frameset>
 </html>
-<!-- 
-<?php
-	var_export($this->raw('session'));
-?>
--->
