@@ -23,7 +23,7 @@ class Natter_HTTPRequest {
 
 // Shouldn't really need these two in PHP code.
 	public function getParams() { return $_REQUEST; }
-	public function getCookie($cookie) { return $_COOKIE[$cookie]; }
+	public function getCookie($cookie) { return isset($_COOKIE[$cookie]) ? $_COOKIE[$cookie] : null; }
 
 // Erk, why does PHP make me do this?
 	public function getHeader($header) {
