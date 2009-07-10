@@ -30,9 +30,11 @@
 	require_once 'Natter/HTTPRequest.php';
 	require_once 'Natter/HTTPResponse.php';
 	require_once 'Natter/Session.php';
+	require_once 'Natter/Action.php';
+	require_once 'Natter/Template.php';
 	$request = new Natter_HTTPRequest();
 	$response = new Natter_HTTPResponse();
-	$session = new Natter_Session($request->getCookie($config['CookiePrefix'] . '_session'), $dbh);
+	$session = new Natter_Session($request->getCookie($config['CookiePrefix'] . '_session'));
 
 // If we were more complex, the router bits would go here.  Because we're simple
 // and stupid, we can fall back to poking at $_REQUEST['action']

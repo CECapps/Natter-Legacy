@@ -32,9 +32,13 @@ class Natter_Action_Index implements Natter_Action {
 	} // end __construct
 
 	public function run() {
-		$this->response->setBody('
-			OH HEY LOOK IT IS A BODY
-		');
+		global $config;
+		$template = new Natter_Template('index');
+		$template->chat_name = $config['ChatName'];
+		$template->session = $this->session;
+		$html = $template->render();
+		$this->response->setBody($html);
+		return;
 	} // end run
 
 }

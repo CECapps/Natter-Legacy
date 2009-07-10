@@ -1,0 +1,17 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
+   "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+<head>
+	<title><?php echo $this->chat_name; ?></title>
+</head>
+<frameset rows="65,*,130" border="0">
+	<frame src="chattop.html" name="eltop" scrolling="no">
+	<frame src="messages.html" name="messages" scrolling="auto">
+	<frame src="chat3.cgi" name="input" scrolling="no">
+</frameset>
+</html>
+<!-- 
+<?php
+	var_export($this->raw('session'));
+?>
+-->
