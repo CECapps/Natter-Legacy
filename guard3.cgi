@@ -549,6 +549,7 @@ $show_cleared
 
 # Log the user out.
 	sub action_logout {
+		$session->{data}->{admin} = undef;
 		$session->{data}->{guard} = undef;
 		$response->addHeader('Status', '302 Found');
 		$response->addHeader('Location', $config->{GuardScriptName} . '?action=authenticate');

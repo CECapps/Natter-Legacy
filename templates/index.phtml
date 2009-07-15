@@ -8,7 +8,14 @@
 <?php if($this->show_chat_top): ?>
 	<frame src="<?php echo $this->chat_top_file; ?>" name="eltop" scrolling="no">
 <?php endif; ?>
+<?php if($this->is_guard): ?>
+	<frameset cols="*,210" border="2">
+<?php endif; ?>
 	<frame src="messages.html" name="messages" scrolling="auto">
+<?php if($this->is_guard): ?>
+	<frame src="<?php echo $this->guard_script_url ?>" name="ips" id="ips" scrolling="auto">
+	</frameset>
+<?php endif; ?>
 	<frame src="chat3.cgi" name="input" scrolling="no">
 </frameset>
 </html>

@@ -51,4 +51,21 @@ class Natter_Util {
 		return Natter_Util::getConfigWithDefaults();
 	} // end getConfigFromDatabase
 
+
+/**
+ * Get the IP address for the current request.  Hmm, this should be in the Request object.
+ * #FIXME
+ * 
+ * @return string
+ **/
+	public static function getIPAddress() {
+		global $config;
+	// Obvious, right?
+		$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '127.0.0.1';
+	// But if the user came here through a proxy, and we trust proxies, use the header instead.
+		if(isset($_SERVER['HTTP_X_FORWARDED_FOR']) && $config['CheckProxyForward'])
+			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		return $ip;
+	} // end getIPAddress
+
 } // end Natter_Util

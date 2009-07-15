@@ -31,7 +31,7 @@ class Natter_Action_Index implements Natter_Action {
 	} // end __construct
 
 	public function run() {
-		global $config;
+		global $config, $session;
 	// We use the "index" template.  Derf.
 		$template = new Natter_Template('index');
 
@@ -43,6 +43,9 @@ class Natter_Action_Index implements Natter_Action {
 		$template->chat_top_pixels = $config['ChatTopFrameHeight'];
 	// Do we have a static HTML file for the chat top?
 		$template->chat_top_file = file_exists($config['NonCGIPath'] . '/chattop.html') ? 'chattop.html' : 'index.php?action=chattop';
+	// Are we dealing with an admin or guard?  They get the guard frameset.
+		$template->is_guard = ($session->data['guard'] || $session->data['admin']) ? true : false;
+		$template->guard_script_url = $config['GuardScriptName'] . '?action=list_users';
 
 		$html = $template->render();
 		$this->response->setBody($html);
