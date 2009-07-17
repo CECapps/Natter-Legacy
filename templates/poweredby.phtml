@@ -1,0 +1,9 @@
+<?php
+global $VERSION, $VERSION_TAG;
+echo '<p class="copy">'
+   . '<a href="http://natter.pleh.net/" target="_blank">Powered by Natter '
+   . $VERSION
+   . ($VERSION_TAG ? ' ' . $VERSION_TAG : '')
+   . '</a>'
+   . ((!isset($this->include_copyright) || $this->include_copyright !== false) ? '<br />Copyright 1999-' . date('Y')  . ' Charles Capps' : '')
+   . '</p>';

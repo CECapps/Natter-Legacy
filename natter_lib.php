@@ -15,6 +15,11 @@
  * Questions?  Comments?  <capps@solareclipse.net>
  **/
 
+// Yeah, it's stored here.
+	global $VERSION, $VERSION_TAG;
+	$VERSION = '5.0.0';
+	$VERSION_TAG = '"Trespass"';
+
 // What's our configuration look like?
 	global $config;
 	require_once 'config.inc.php';

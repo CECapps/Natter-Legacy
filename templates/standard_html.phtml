@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title><?php echo $this->config['ChatName']; ?></title>
+	<link rel="stylesheet" href="<?php echo $this->config['CSSName']; ?>">
+	<script type="text/javascript" src="<?php echo $this->config['NonCGIURL']; ?>/jquery-1.3.2.min.js"></script>
+</head>
+<body>
+	<div class="header"><?php echo $this->header; ?></div>
+	<div class="body"><?php echo $this->body; ?></div>
+	<div class="footer"><?php echo $this->footer; ?></div>
+	<?php
+		if(!isset($this->powered_by) || $this->powered_by !== false)
+			include 'poweredby.phtml';
+	?>
+</body>
+</html>

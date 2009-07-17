@@ -1,0 +1,11 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"
+   "http://www.w3.org/TR/html4/frameset.dtd">
+<html>
+<head>
+	<title><?php echo $this->config['ChatName']; ?></title>
+</head>
+<frameset cols="165,*" border="2">
+	<frame src="<?php echo $this->config['IndexName']; ?>?action=logs&frame=left" name="logleft" scrolling="auto">
+	<frame src="<?php echo $this->config['IndexName']; ?>?action=logs&frame=right" name="logright" scrolling="auto">
+</frameset>
+</html>

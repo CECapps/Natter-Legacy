@@ -20,12 +20,14 @@ class Natter_Util {
 	public static function getConfigWithDefaults() {
 		global $config;
 	// Certain things are hard-coded, do so now.
+		$config['Index']			= 'index.php';
 		$config['Script'] 			= 'chat3.cgi';
 		$config['GuardScript'] 		= 'guard3.cgi';
 		$config['CPanelScript']		= 'control3.cgi';
 		$config['MessagesFN'] 		= 'messages';
 		$config['MessagesFX']		= '.html';
 		$config['DBFile']			= $config['DatabasePath']	. '/chat3.sqlite';
+		$config['IndexName'] 		= $config['CGIURL'] 		. "/" . $config['Index'];
 		$config['ScriptName'] 		= $config['CGIURL'] 		. "/" . $config['Script'];
 		$config['GuardScriptName'] 	= $config['CGIURL'] 		. "/" . $config['GuardScript'];
 		$config['CPanelScriptName']	= $config['CGIURL'] 		. "/" . $config['CPanelScript'];
@@ -41,6 +43,9 @@ class Natter_Util {
 			$config['DBUser'] = null;
 		if(!isset($config['DBPassword']))
 			$config['DBPassword'] = null;
+	// PHP configuration sucks.
+		if(isset($config['TimeZoneCode']))
+			date_default_timezone_set($config['TimeZoneCode']);
 		return $config;
 	} // end getConfigWithDefaults
 

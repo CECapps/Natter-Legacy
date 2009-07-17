@@ -399,6 +399,14 @@
 		border: 1px solid {$style['MultiChatBorder']};
 	}
 
+/* Log viewer: IP address */
+	div.log-ip {
+		font-size: 80%;
+		font-weight: bold;
+		margin-left: 2em;
+		color: {$style['HRColor']};
+	}
+
 THESTYLESHEET;
 
 // Look for a local stylesheet

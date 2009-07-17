@@ -17,11 +17,14 @@
 
 class Natter_Template {
 
+	protected $config;
+
 	protected $_data;
 	protected $_filename;
 
 	public function __construct($template_name) {
 		global $config;
+		$this->config = &$config;
 		$filename = $config['NonCGIPath'] . '/templates/' . $template_name . '.phtml';
 		if(!file_exists($filename))
 			throw new Exception("Template '$template_name' not found.");
@@ -39,11 +42,19 @@ class Natter_Template {
 	} // end raw
 
 	public function __get($key) {
-		return htmlspecialchars($this->_data[$key]);
+		return is_string($this->_data[$key]) ? htmlspecialchars($this->_data[$key]) : $this->_data[$key];
 	} // end __get
 
 	public function __set($key, $value) {
 		$this->_data[$key] = $value;
 	} // end __set
+
+	public function __isset($key) {
+		return isset($this->_data[$key]);
+	} // end __isset
+
+	public function __unset($key) {
+		unset( $this->_data[$key] );
+	} // end __unset
 
 } // end Natter_Template

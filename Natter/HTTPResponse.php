@@ -77,7 +77,7 @@ class Natter_HTTPResponse {
 	} // end appendBody
 
 // Clear the existing body and reset the sent status, if we can
-	public function clearBody($string) {
+	public function clearBody() {
 		$this->body = '';
 		$this->done = headers_sent();
 	} // end appendBody

@@ -32,6 +32,7 @@
 	require_once 'Natter/Session.php';
 	require_once 'Natter/Action.php';
 	require_once 'Natter/Template.php';
+	require_once 'Natter/Error.php';
 	$request = new Natter_HTTPRequest();
 	$response = new Natter_HTTPResponse();
 	$session_id = $request->getCookie($config['CookiePrefix'] . '_session');
@@ -52,7 +53,15 @@
 
 // Okay, we now have our action, let's do something with it!
 	$action = new $action_class($request, $response, $session);
-	$action->run();
+	try {
+		$action->run();
+	} catch(Exception $e) {
+	// Let the error page handler take care of it.
+		$response->clearBody();
+		require_once $pwd . '/Natter/Action/Error.php';
+		$standardhtml = new Natter_Action_Error($request, $response, $session);
+		$standardhtml->run($e);
+	} // end try
 
 // The action should have populated the response...
 	if($response->canOutput())

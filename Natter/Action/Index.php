@@ -35,8 +35,6 @@ class Natter_Action_Index implements Natter_Action {
 	// We use the "index" template.  Derf.
 		$template = new Natter_Template('index');
 
-	// We only exist to provide a frameset.  The chat name goes in the title tag.
-		$template->chat_name = $config['ChatName'];
 	// Do we display a chat top frame?
 		$config['ChatTopFrameHeight'] = 65;
 		$template->show_chat_top = $config['ChatTopFrameHeight'] > 0 ? true : false;

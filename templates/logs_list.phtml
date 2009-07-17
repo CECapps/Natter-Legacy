@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title><?php echo $this->config['ChatName']; ?></title>
+	<link rel="stylesheet" href="<?php echo $this->config['CSSName']; ?>">
+	<style type="text/css">
+		h5, ul {
+			margin: 0px;
+		}
+		ul {
+			list-style: none;
+			padding: 0px;
+		}
+		li span {
+			visibility: hidden;
+			font-weight: bold;
+		}
+		li span.picked {
+			visibility: visible;
+			color: red;
+		}
+	</style>
+	<script type="text/javascript" src="<?php echo $this->config['NonCGIURL']; ?>/jquery-1.3.2.min.js"></script>
+	<script type="text/javascript">
+	$().ready(function(){
+		$('a').click(function(event){
+			var link = $(event.target);
+			var list_item = link.parent('li');
+			var span = list_item.children('span');
+			$('span').removeClass('picked');
+			span.addClass('picked');
+		});
+	});
+	</script>
+</head>
+<body>
+<?php
+
+foreach($this->raw('files_by_date') as $date => $hours) {
+	$pretty_date = date('D M jS Y', strtotime($date));
+	echo '<h5>' . $pretty_date . '</h5>';
+	echo '<ul>';
+	foreach($hours as $hour) {
+		$pretty_hour = $hour;
+		if($pretty_hour > 12) {
+			$pretty_hour -= 12;
+			$pretty_hour .= ':00 PM';
+		} else {
+			$pretty_hour .= ':00 AM';
+		} // end if
+		echo '<li><span>&raquo;</span><a target="logright" href="'
+		   . $this->config['IndexName']
+		   . '?action=logs&frame=right&date='
+		   . $date
+		   . '&hour='
+		   . $hour
+		   . '">'
+		   . $pretty_hour
+		   . '</a></li>';
+	} // end foreach
+	echo '</ul>';
+} // end foreach
+?>
+</body>
+</html>
+

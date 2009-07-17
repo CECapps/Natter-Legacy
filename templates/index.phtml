@@ -2,7 +2,7 @@
    "http://www.w3.org/TR/html4/frameset.dtd">
 <html>
 <head>
-	<title><?php echo $this->chat_name; ?></title>
+	<title><?php echo $this->config['ChatName']; ?></title>
 </head>
 <frameset rows="<?php echo ($this->show_chat_top ? $this->chat_top_pixels . ',*,130' : '*,130'); ?>" border="0">
 <?php if($this->show_chat_top): ?>
