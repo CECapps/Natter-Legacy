@@ -35,8 +35,16 @@
 	require_once 'Natter/Error.php';
 	$request = new Natter_HTTPRequest();
 	$response = new Natter_HTTPResponse();
+// Initiate our session
 	$session_id = $request->getCookie($config['CookiePrefix'] . '_session');
 	$session = new Natter_Session($session_id);
+// Is this a new session?  If so, we need to cookienate.
+	if(!$session_id || $session->id != $session_id) {
+		$session->save();
+		$response->addCookie($config['CookiePrefix'] . '_session', $session->id);
+	} // end if
+// Okay, if we managed to get this far, we can install our exception handler.
+	set_exception_handler('natter_global_exception_handler');
 
 // If we were more complex, the router bits would go here.  Because we're simple
 // and stupid, we can fall back to poking at $_REQUEST['action']
@@ -53,17 +61,19 @@
 
 // Okay, we now have our action, let's do something with it!
 	$action = new $action_class($request, $response, $session);
-	try {
-		$action->run();
-	} catch(Exception $e) {
-	// Let the error page handler take care of it.
-		$response->clearBody();
-		require_once $pwd . '/Natter/Action/Error.php';
-		$standardhtml = new Natter_Action_Error($request, $response, $session);
-		$standardhtml->run($e);
-	} // end try
+	$action->run();
 
 // The action should have populated the response...
 	if($response->canOutput())
 		$response->output();
 	exit;
+
+// Handle unhandled exceptions.
+	function natter_global_exception_handler(Exception $e) {
+		global $response, $request, $session, $pwd;
+		$response->reset();
+		require_once $pwd . '/Natter/Action/Error.php';
+		$standardhtml = new Natter_Action_Error($request, $response, $session);
+		$standardhtml->run($e);
+		$response->output();
+	} // end natter_global_exception_handler

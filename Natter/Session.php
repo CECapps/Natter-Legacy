@@ -49,6 +49,8 @@ class Natter_Session {
 			$this->retrieve($id);
 			if(!$this->validate())
 				$this->create();
+		} else {
+			$this->create();
 		} // end if
 	} // end __construct
 

@@ -87,10 +87,20 @@ class Natter_HTTPResponse {
 		return !$this->done || !headers_sent();
 	} // end canOutput
 
+// Reset ourselves to a default stat
+	public function reset() {
+		$this->headers = array();
+		$this->cookies = array();
+		$this->body = '';
+		$this->done = false;
+	} // end reset
+
 // Send stuff to the browser
 	public function output() {
-		if($this->done) trigger_error('Can not send body, already posted output', E_USER_ERROR);
-		if(headers_sent()) trigger_error('Can not send body, already sent headers', E_USER_ERROR);
+		if($this->done)
+			trigger_error('Can not send body, already posted output', E_USER_ERROR);
+		if(headers_sent() && (count($this->headers) || count($this->cookies)))
+			trigger_error('Can not send body, already sent headers', E_USER_ERROR);
 	// Grab the output buffer and add it to the body.  Note that we're doing a
 	// manual calculation of the content length.  The original intent of the
 	// native Perl code did this because Perl's CGI.pm didn't, and users were
@@ -108,7 +118,7 @@ class Natter_HTTPResponse {
 			header($header . ': ' . $value);
 	// And the cookies
 		foreach($this->cookies as $name => $cookie)
-			setcookie($name, $cookie['value'], $cookie['expires']);
+			setcookie($name, $cookie['value'], $cookie['expires'], '/');
 	// Print the body and mark the body as sent.
 		echo $this->body;
 		$this->done = true;
