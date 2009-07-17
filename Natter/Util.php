@@ -35,7 +35,7 @@ class Natter_Util {
 		$config['MessagesName'] 	= $config['NonCGIURL'] 		. "/" . $config['MessagesFN'] . $config['MessagesFX'];
 		$config['PostlogFile'] 		= $config['NonCGIPath'] 	. "/" . $config['MessagesFN'] . "_bans.cgi";
 		if(isset($config['CSSFile']))
-			$config['CSSName']		= $config['NonCGIURL'] 		. "/" . $config['CSSFile'];
+			$config['CSSName']		= $config['IndexName'] 		. '?action=css';
 	// Additional defaults will go here.  At time of writing of this comment,
 	// any and all configuration directives will already have defaults, because
 	// they are in the database.  Yay small beta audience.

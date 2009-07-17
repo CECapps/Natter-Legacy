@@ -118,7 +118,16 @@ class Natter_Action_Logs implements Natter_Action {
 			$find_ip = '/\<\!\-\- ([\d\.]+) \-\->/';
 			$replace_ip = '<div class="log-ip">^^^ $1</div>';
 		} // end if
-		$this->response->setBody(preg_replace($find_ip, $replace_ip, file_get_contents($filename)));
+	// Also filter the stylesheet URL
+		$search = array(
+			$find_ip,
+			('/(' . preg_quote('</style><link rel="stylesheet" href="', '/') . ')[^"]+(' . preg_quote('" type="text/css" />', '/') . ')/')
+		);
+		$replace = array(
+			$replace_ip,
+			'$1' . $config['IndexName'] . '?action=css$2'
+		);
+		$this->response->setBody(preg_replace($search, $replace, file_get_contents($filename)));
 	} // end rightFrame
 
 

@@ -1,3 +1,3 @@
 <?php
-$_GET['style'] = 'blue';
-include 'style.php';
+	header('Location: index.php?action=css&style=blue');
+	exit;

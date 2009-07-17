@@ -251,6 +251,7 @@ our $VERSION_TAG = '"Trespass"';
 
 # Unbreak a broken config.
 	sub unbreakConfig {
+		$config->{Index}			= 'index.php';
 		$config->{Script} 			= 'chat3.cgi';
 		$config->{GuardScript} 		= 'guard3.cgi';
 		$config->{CPanelScript}		= 'control3.cgi';
@@ -258,12 +259,13 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{MessagesFX}		= '.html';
 		$config->{DBFile}			= $config->{DatabasePath}	. '/chat3.sqlite';
 		$config->{ScriptName} 		= $config->{CGIURL} 		. "/" . $config->{Script};
+		$config->{IndexName}		= $config->{CGIURL}			. '/' . $config->{Index};
 		$config->{GuardScriptName} 	= $config->{CGIURL} 		. "/" . $config->{GuardScript};
 		$config->{CPanelScriptName}	= $config->{CGIURL} 		. "/" . $config->{CPanelScript};
 		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
 		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
 		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
-		$config->{CSSName} 			= $config->{NonCGIURL} 		. "/" . $config->{CSSFile};
+		$config->{CSSName} 			= $config->{IndexName}		. '?action=css';
 	} # end unbreakConfig
 
 
