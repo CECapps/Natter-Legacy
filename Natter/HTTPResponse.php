@@ -122,7 +122,7 @@ class Natter_HTTPResponse {
 	// Print the body and mark the body as sent.
 		echo $this->body;
 		$this->done = true;
-		ob_end_flush();
+		@ob_end_flush();
 		return true;
 	} // end output
 
