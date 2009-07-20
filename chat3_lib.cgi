@@ -74,6 +74,7 @@ our $VERSION_TAG = '"Trespass"';
 		my $version_upgrade = {
 			1 => \&upgradeDatabase_Version1,
 			2 => \&upgradeDatabase_Version2,
+			3 => \&upgradeDatabase_Version3,
 		};
 	# Go through the list, skipping upgrades that aren't needed.
 		foreach my $upgrade_version (sort { $a <=> $b } keys %$version_upgrade) {
@@ -128,6 +129,96 @@ our $VERSION_TAG = '"Trespass"';
 			);
 		} # end foreach
 	} # end upgradeDatabase_Version2
+
+
+# DB version 3: Styles!
+	sub upgradeDatabase_Version3 {
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS styles (
+				id		INTEGER PRIMARY KEY AUTOINCREMENT,
+				name	TEXT,
+				active	INT
+			)
+		');
+		$dbh->do('DELETE FROM styles');
+		$dbh->do('
+			CREATE TABLE IF NOT EXISTS style_values(
+				style_id	INTEGER,
+				name		TEXT,
+				value		TEXT,
+				PRIMARY KEY(style_id, name)
+			)
+		');
+		$dbh->do('DELETE FROM style_values');
+		$dbh->do('
+			INSERT INTO styles(id, name, active)
+			       VALUES(1, "Twilight Blue", 1)
+		');
+		$dbh->do('
+			INSERT INTO styles(id, name, active)
+				   VALUES(2, "Mu Bronze", 1)
+		');
+		$dbh->do('
+			INSERT INTO styles(id, name, active)
+				   VALUES(3, "Phoenix Orange", 1)
+		');
+		my %base_style = (
+			'BGColor' 			=> '#000000',
+			'BGLightColor'		=> '#101010',
+			'BorderColor' 		=> '#a0a0a0',
+			'BanColor' 			=> '#808080',
+			'BanHiliteColor'	=> '#a0a0f0',
+			'BanDarkColor'		=> '#101010',
+			'BanLiftColor'		=> '#f0a0a0',
+			'PoweredByColor'	=> '#303040',
+			'MultiChatBorder'	=> '#444444',
+		);
+	# Blue variant, for TwC
+		my %blue_style = (
+			'TextColor' 		=> '#ddddee',
+			'DarkTextColor' 	=> '#505060',
+			'TimeColor' 		=> '#a0a0b0',
+			'HRColor' 			=> '#4d78b9',
+			'HRColor2' 			=> '#0066b3',
+			'AjaxLoader'		=> 'ajax_blue.gif',
+			%base_style
+		);
+	# Orange variant, for Phoenix
+		my %orange_style = (
+			'TextColor' 		=> '#dddddd',
+			'DarkTextColor' 	=> '#505050',
+			'TimeColor' 		=> '#a0a0a0',
+			'HRColor' 			=> '#fc9833',
+			'HRColor2' 			=> '#fca853',
+			'AjaxLoader'		=> 'ajax_orange.gif',
+			%base_style
+		);
+	# Bronze variant, for MU
+		my %bronze_style = (
+			'TextColor' 		=> '#dddddd',
+			'DarkTextColor' 	=> '#505060',
+			'TimeColor' 		=> '#a0a0a0',
+			'HRColor' 			=> '#ABA457',
+			'HRColor2' 			=> '#ABA457',
+			'AjaxLoader'		=> 'ajax_bronze.gif',
+			%base_style
+		);
+		my %styles = (
+			1 => \%blue_style,
+			2 => \%bronze_style,
+			3 => \%orange_style
+		);
+		foreach my $style_id (keys %styles) {
+			foreach my $key (keys %{ $styles{$style_id} }) {
+				$dbh->do('INSERT INTO style_values(style_id, name, value) VALUES(?, ?, ?)',
+						 undef,
+						 $style_id,
+						 $key,
+						 $styles{$style_id}->{$key}
+						 );
+			} # end foreach
+		} # end foreach
+	} # end upgradeDatabase_Version3
 
 
 # Create tables in the SQLite database
@@ -265,7 +356,16 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
 		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
 		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
-		$config->{CSSName} 			= $config->{IndexName}		. '?action=css';
+	# Sigh, styles.
+		my $style_number = 1;
+		if($config->{StyleNumber}) {
+			$style_number = $config->{StyleNumber};
+		} else {
+			$style_number = 1 if($config->{CSSFile} =~ m/blue/);
+			$style_number = 2 if($config->{CSSFile} =~ m/bronze/);
+			$style_number = 3 if($config->{CSSFile} =~ m/orange/);
+		} # end if
+		$config->{CSSName} 			= $config->{IndexName}		. '?action=css&style=' . $style_number;
 	} # end unbreakConfig
 
 
@@ -556,30 +656,34 @@ STANDARDhtml
 				$multiples{$hex} = $sec;
 			} else {
 			# Woo, clear.
-				$reverse_color_map{$hex} = $color;
+				$reverse_color_map->{$hex} = $color;
 			} # end if
 		} # end foreach
 	# Multiples, ARGH!
 		foreach my $hex (keys %multiples) {
 			$mult = $multiples{$hex};
+			#print Dumper $mult;
 		# Pull the canonical color back in the list.
 			$mult[scalar @$mult] = $reverse_color_map->{$hex};
 		# Try to pick names in the official list first.
-			my @official = sort grep { exists $color_map{$_} } @$multi;
+			my @official = sort grep { exists $color_map{$_} } @$mult;
 			if(scalar @official > 0) {
 				$reverse_color_map->{$hex} = $official[0];
+				# print "&& $official[0] -> $hex \n ";
 				next;
 			} # end if
 		# Try to pick names without numbers second.
 			my @nonum = sort grep { !m/\d+$/ } @$mult;
 			if(scalar @nonum > 0) {
 				$reverse_color_map->{$hex} = $nonum[0];
+				# print "@@ $official[0] -> $hex \n ";
 				next;
 			} # end if
 		# It's not official, and it has numbers.  Crap on a stick.  Just pick
 		# the first sorted name we have and run with it.
 			my @mutter = sort @$mult;
 			$reverse_color_map->{$hex} = $mutter[0];
+			# print "* $mutter[0] -> $hex\n ";
 		} # end foreach
 	} # end generateReverseColorMap
 

@@ -96,6 +96,8 @@ require "chat3_lib.cgi";
 		intro			=> \&action_intro,
 		settings		=> \&action_settings,
 		save_settings	=> \&action_save_settings,
+		manage_styles	=> \&action_manage_styles,
+		edit_style		=> \&action_edit_style,
 		logins			=> \&action_logins,
 		save_logins		=> \&action_save_logins,
 		logout			=> \&action_logout,
@@ -176,6 +178,7 @@ FORMBODY
 Welcome to the Chat Control Panel.  Please select an action to perform:
 <ul>
 	<li><a href="$config->{CPanelScriptName}?action=settings">Change Settings</a></li>
+	<li><a href="$config->{CPanelScriptName}?action=manage_styles">Manage Styles</a></li>
 	<li><a href="$config->{CPanelScriptName}?action=logins">Manage Admin/Guard Logins</a></li>
 	<li><a href="$config->{GuardScriptName}?action=frameset">View Chat Guard Frame</a></li>
 	<li><a href="$config->{NonCGIURL}/chat.html">View Chat</a></li>
@@ -761,6 +764,28 @@ $err
 			footer => undef,
 		}));
 	} # end action_save_logins
+
+
+# List the current styles, allow modification of the current style, creation of new styles
+	sub action_manage_styles {
+		my $html = 'woop woop';
+		$response->setBody(standardHTML({
+			header => 'Manage Styles',
+			body => $html,
+			footer => undef
+		}));
+	} # end action_manage_styles
+
+# Edit a style.
+	sub action_edit_style {
+	# http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js
+		my $html = 'hurf durf';
+		$response->setBody(standardHTML({
+			header => 'Edit a Style',
+			body => $html,
+			footer => undef
+		}));
+	} # end action_edit_style
 
 
 # Log the user out.

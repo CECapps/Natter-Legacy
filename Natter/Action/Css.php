@@ -38,10 +38,10 @@ class Natter_Action_Css implements Natter_Action {
 	public function run() {
 		global $config;
 	// Okay, what color are we?
-		$style_name = isset($_REQUEST['style']) ? $_REQUEST['style'] : 'bronze';
+		$style_number = isset($_REQUEST['style']) ? $_REQUEST['style'] : 1;
 	// Render the CSS
 		$template = new Natter_Template('css');
-		$template->style = $this->getStyle($style_name);
+		$template->style = $this->getStyle($style_number);
 		$css = $template->render() . "\n";
 	// Attach any custom CSS
 		$local_css = $config['NonCGIPath'] . '/local_style.css';
@@ -53,55 +53,9 @@ class Natter_Action_Css implements Natter_Action {
 		return;
 	} // end run
 
-	public function getStyle($color = 'bronze') {
-	// The defined styles have these elements in common
-		$base_style = array(
-			'BGColor' 			=> '#000000',
-			'BGLightColor'		=> '#101010',
-			'BorderColor' 		=> '#a0a0a0',
-			'BanColor' 			=> '#808080',
-			'BanHiliteColor'	=> '#a0a0f0',
-			'BanDarkColor'		=> '#101010',
-			'BanLiftColor'		=> '#f0a0a0',
-			'PoweredByColor'	=> '#303040',
-			'MultiChatBorder'	=> '#444444',
-		);
-	// Blue variant, for TwC
-		$blue_style = array_merge(array(
-			'TextColor' 		=> '#ddddee',
-			'DarkTextColor' 	=> '#505060',
-			'TimeColor' 		=> '#a0a0b0',
-			'HRColor' 			=> '#4d78b9',
-			'HRColor2' 			=> '#0066b3',
-			'AjaxLoader'		=> 'ajax_blue.gif',
-		), $base_style);
-	// Orange variant, for Phoenix
-		$orange_style = array_merge(array(
-			'TextColor' 		=> '#dddddd',
-			'DarkTextColor' 	=> '#505050',
-			'TimeColor' 		=> '#a0a0a0',
-			'HRColor' 			=> '#fc9833',
-			'HRColor2' 			=> '#fca853',
-			'AjaxLoader'		=> 'ajax_orange.gif',
-		), $base_style);
-	// Bronze variant, for MU
-		$bronze_style = array_merge(array(
-			'TextColor' 		=> '#dddddd',
-			'DarkTextColor' 	=> '#505060',
-			'TimeColor' 		=> '#a0a0a0',
-			'HRColor' 			=> '#ABA457',
-			'HRColor2' 			=> '#ABA457',
-			'AjaxLoader'		=> 'ajax_bronze.gif',
-		), $base_style);
-	// And we'll pick...
-		$styles = array(
-			'blue' => $blue_style,
-			'orange' => $orange_style,
-			'bronze' => $bronze_style
-		);
-		if(!isset($styles[ $color ]))
-			$color = 'bronze';
-		return $styles[ $color ];
+	public function getStyle($number = 1) {
+		global $dbh;
+		return $dbh->queryPairs('SELECT name, value FROM style_values WHERE style_id = ?', array( $number ));
 	} // end getStyle
 
 }
