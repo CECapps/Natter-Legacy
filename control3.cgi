@@ -768,7 +768,36 @@ $err
 
 # List the current styles, allow modification of the current style, creation of new styles
 	sub action_manage_styles {
-		my $html = 'woop woop';
+		my $html = qq~
+			<br />
+			<table align="center" id="cpanel-settings">
+				<caption style="text-align: left;">
+					&laquo; <a href="$config->{CGIURL}/control3.cgi?action=intro">Back</a>
+				</caption>
+				<tr>
+					<th>#</th>
+					<th>Name</th>
+					<th>&nbsp;</th>
+					<th>&nbsp;</th>
+				</tr>
+		~;
+
+		my $styles = $dbh->selectall_hashref('SELECT * FROM styles', 'id');
+		foreach my $style_id (sort keys %$styles) {
+			my $style = $styles->{$style_id};
+			my $safe_name = CGI::escapeHTML($style->{name});
+			my $active = $config->{StyleNumber} == $style->{id} ? ' <i>(Currently Selected)</i>' : '';
+			$html .= <<HEREDOCDOCDOCHEREDOC;
+			<tr>
+				<td>$style->{id}</td>
+				<td>$safe_name$active</td>
+				<td>[<a href="$config->{CGIURL}/control3.cgi?action=edit_style&style=$style->{id}">edit</a>]</td>
+				<td>[<a href="$config->{CGIURL}/control3.cgi?action=edit_style&style=$style->{id}&clone=1">clone</a>]</td>
+			</tr>
+HEREDOCDOCDOCHEREDOC
+		} # end foreach
+		$html .= '</table><br />';
+
 		$response->setBody(standardHTML({
 			header => 'Manage Styles',
 			body => $html,
@@ -776,16 +805,200 @@ $err
 		}));
 	} # end action_manage_styles
 
+
 # Edit a style.
 	sub action_edit_style {
-	# http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js
-		my $html = 'hurf durf';
+		my %style;
+		my $sth = $dbh->prepare('SELECT name, value FROM style_values WHERE style_id = ?', undef);
+		$sth->execute($in{style} + 0);
+		while(my($name, $value) = $sth->fetchrow_array()) {
+			$style{$name} = $value;
+		} # end while
+		$sth->finish();
+		if(!scalar keys %style) {
+			$response->setBody(standardHTML({
+				header => 'Error',
+				body => 'Style not found.'
+			}));
+			return;
+		} # end if
+
+	# Descriptaroonie.
+		my $style_descriptions = {
+			'BGColor' 			=> {
+				title => 'Background Color',
+				desc => 'Background color of the page and certain other elements.',
+				type => 'color',
+			},
+			'BGLightColor'		=> {
+				title => 'Hilite Background Color',
+				desc => 'Background color of certain elements when they are selected or should otherwise stand out.',
+				type => 'color',
+			},
+			'BorderColor' 		=> {
+				title => 'Form Element Border Color',
+				desc => 'Border color of buttons and other form elements.',
+				type => 'color',
+			},
+			'BanColor' 			=> {
+				title => 'Ban Page Border Color',
+				desc => 'Border color of lists on the ban page.',
+				type => 'color',
+			},
+			'BanHiliteColor'	=> {
+				title => 'Ban Page Hilite Text Color',
+				desc => 'Text color for important information on the ban page.',
+				type => 'color',
+			},
+			'BanLiftColor'		=> {
+				title => 'Ban Page Hilite Text Color (2)',
+				desc => 'Alternate text color for important information on the ban page.',
+				type => 'color',
+			},
+			'PoweredByColor'	=> {
+				title => 'Powered-by Text Color',
+				desc => 'Text color of the powered-by text at the bottom of most pages.  Please refer to your license agreement for acceptable color ranges.',
+				type => 'color'
+			},
+			'MultiChatBorder'	=> {
+				title => 'MultiChat Border Color',
+				desc => 'Border color for the MultiChat profile selection tabs.',
+				type => 'color'
+			},
+			'TextColor' 		=> {
+				title => 'Normal Text Color',
+				desc => 'Text color for anything not otherwise colored.',
+				type => 'color'
+			},
+			'DarkTextColor' 	=> {
+				title => 'Alternate Text Color',
+				desc => 'Text color for low priority or background text, such as the new user entry message.',
+				type => 'color'
+			},
+			'TimeColor' 		=> {
+				title => 'Alternate Text Color (2)',
+				desc => 'Text color for other misc. text, including certain timestamps.',
+				type => 'color'
+			},
+			'HRColor' 			=> {
+				title => 'Primary Splash Color',
+				desc => 'Border and text color used to hilite active elements and provide color in this otherwise dreary scheme of blacks and greys.',
+				type => 'color'
+			},
+			'HRColor2' 			=> {
+				title => 'Secondary Splash Color',
+				desc => 'Border and text color used to complement the Primary Splash Color.',
+				type => 'color'
+			},
+			'AjaxLoader'		=> {
+				title => 'AJAX Loading Image',
+				desc => 'Filename of the AJAX Loading Image, used when MultiChat or Seamless modes are enabled.',
+				type => 'text',
+				size => 20,
+			},
+		};
+	# Sort order
+		my @order = qw(
+			BGColor
+			TextColor
+			DarkTextColor
+			TimeColor
+
+			BGLightColor
+			BorderColor
+			MultiChatBorder
+			HRColor
+			HRColor2
+
+			BanColor
+			BanHiliteColor
+			BanLiftColor
+
+			PoweredByColor
+			AjaxLoader
+		);
+
+	# Build the page!
+		my $html = qq~
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
+~ . q~
+<script type="text/javascript">
+
+// Change the color box when requested
+	function colorchange_callback(event) {
+		var element = $(event.target);
+		var idsplit = element.attr('id').split('-');
+		if(!idsplit || !idsplit[1])
+			return;
+		$('#colorpicker-' + idsplit[1]).css({ backgroundColor: element.val() });
+	} // end colorchange_callback
+
+// And the ondomready hook...
+	$().ready(function(){
+		$('input.colorbox').focus(colorchange_callback);
+		$('input.colorbox').blur(colorchange_callback);
+	});
+</script>
+~ . qq~
+<div class="cpanel-wrapper">
+<br />
+<form method="post" action="$config->{CPanelSriptName}">
+<input type="hidden" name="action" value="save_settings" />
+<table border="0" cellspacing="0" cellpadding="2" id="cpanel-settings" align="center" width="650">
+	<caption style="text-align: left;">
+	&laquo; <a href="$config->{CPanelScriptName}?action=manage_styles">Back</a>
+	</caption>
+		~;
+		foreach my $key (@order) {
+			my $desc = $style_descriptions->{$key};
+			if($desc->{type} eq 'color') {
+				$html .= edit_style_control_color($key, $desc, $style{$key});
+			} elsif($desc->{type} eq 'text') {
+				$html .= edit_style_control_text($key, $desc, $style{$key});
+			}
+		} # end foreach
+		$html .= '</table>';
 		$response->setBody(standardHTML({
 			header => 'Edit a Style',
 			body => $html,
 			footer => undef
 		}));
 	} # end action_edit_style
+
+# lawl, boxes
+	sub edit_style_control_color {
+		my($key, $description, $value) = @_;
+		return qq~
+	<tr><!-- $key -->
+		<td class="l">
+			$description->{title}
+			<br />
+			<span>$description->{desc}</span>
+		</td>
+		<td valign="top">
+			<input type="text" class="colorbox" name="$key" id="color-$key" value="$value" size="8" />
+			<div class="colorpicker-cell" id="colorpicker-$key" style="background-color: $value;">&nbsp;</div>
+		</td>
+	</tr>
+		~;
+	} # end edit_style_control_color
+
+	sub edit_style_control_text {
+		my($key, $description, $value) = @_;
+		$value = CGI::escapeHTML($value);
+		return qq~
+	<tr><!-- $key -->
+		<td class="l">
+			$description->{title}
+			<br />
+			<span>$description->{desc}</span>
+		</td>
+		<td valign="top">
+			<input type="text" name="$key" id="text-$key" value="$value" size="$description->{size}" />
+		</td>
+	</tr>
+		~;
+	} # end edit_style_control_text
 
 
 # Log the user out.

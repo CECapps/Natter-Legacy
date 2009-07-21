@@ -198,6 +198,15 @@
 		cursor: pointer;
 	}
 
+/* Color picker */
+	.colorpicker-cell {
+		height: 15px;
+		width: 15px;
+		float: left;
+		border: 1px dotted <?php echo $this->style['BorderColor']; ?>;
+		margin: 2px;
+	}
+
 /* Guard page: main table cell magic */
 	#bantable {
 		border: 2px solid <?php echo $this->style['BanColor']; ?>;
@@ -232,7 +241,7 @@
 	#bantable td.bannamecell.active,
 	#bantable td.banipcell.active {
 		border-color: <?php echo $this->style['BanColor']; ?>;
-		background-color: <?php echo $this->style['BanDarkColor']; ?>;
+		background-color: <?php echo $this->style['BGLightColor']; ?>;
 	}
 /* Guard page: Make it all fit... */
 	#banopttable {
@@ -321,6 +330,7 @@
 		font-size: 120%;
 		border: 1px solid <?php echo $this->style['MultiChatBorder']; ?>;
 	}
+
 
 /* Log viewer: IP address */
 	div.log-ip {

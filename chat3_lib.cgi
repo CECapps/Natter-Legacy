@@ -168,7 +168,6 @@ our $VERSION_TAG = '"Trespass"';
 			'BorderColor' 		=> '#a0a0a0',
 			'BanColor' 			=> '#808080',
 			'BanHiliteColor'	=> '#a0a0f0',
-			'BanDarkColor'		=> '#101010',
 			'BanLiftColor'		=> '#f0a0a0',
 			'PoweredByColor'	=> '#303040',
 			'MultiChatBorder'	=> '#444444',
@@ -358,14 +357,15 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
 	# Sigh, styles.
 		my $style_number = 1;
-		if($config->{StyleNumber}) {
+		if(0 && $config->{StyleNumber}) {
 			$style_number = $config->{StyleNumber};
 		} else {
 			$style_number = 1 if($config->{CSSFile} =~ m/blue/);
 			$style_number = 2 if($config->{CSSFile} =~ m/bronze/);
 			$style_number = 3 if($config->{CSSFile} =~ m/orange/);
 		} # end if
-		$config->{CSSName} 			= $config->{IndexName}		. '?action=css&style=' . $style_number;
+		$config->{StyleNumber} 		= $style_number;
+		$config->{CSSName} 			= $config->{IndexName}		. '?action=css&style=' . $config->{StyleNumber};
 	} # end unbreakConfig
 
 
@@ -500,9 +500,11 @@ our $VERSION_TAG = '"Trespass"';
 		my $text;
 	# If we received a hash of options, it's a complex message.
 		my $pbstring = createPoweredBy();
+		my $loltitle = $config->{ChatName};
 		if(ref($_[0]) =~ m/HASH/) {
 			my $ifoot = ( $_[0]->{footer} ne "" ? "<br />" : "" );
 			my $powered_by = ( !exists $_[0]->{no_powered} ? qq~<p class="copy">$pbstring</p>~: "" );
+			$loltitle = $_[0]->{header} . ' - ' . $config->{ChatName} if($_[0]->{header});
 			$text = <<FORMAT;
 <div class="header">$_[0]->{header}</div>
 <div class="body">$_[0]->{body}</div>
@@ -526,6 +528,7 @@ FORMAT
 		return <<STANDARDhtml;
 <html>
 <head>
+	<title>$loltitle</title>
 	<link rel="stylesheet" href="$config->{CSSName}" type="text/css" />
 	<script language="JavaScript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
 </head>
@@ -533,7 +536,6 @@ FORMAT
 	<p>$text</p>
 </body>
 </html>
-<!-- End -->
 STANDARDhtml
 	} # end standardHTML
 
