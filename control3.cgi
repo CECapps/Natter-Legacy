@@ -772,7 +772,7 @@ $err
 			my $selected = $style_id == $config->{StyleNumber} ? ' checked="checked"' : '';
 			$html .= <<HEREDOCDOCDOCHEREDOC;
 			<tr>
-				<td>$style_id}</td>
+				<td>$style_id</td>
 				<td>$safe_name</td>
 				<td align="center"><input type="radio" value="$style_id" name="active_style" $selected /></td>
 				<td>[<a href="$config->{CGIURL}/control3.cgi?action=edit_style&style=$style->{id}">edit</a>]</td>
