@@ -361,7 +361,7 @@ WTB_TEMPLATE_LIBRARY_PST
 			<input type="text" name="ChatClosedHeader" id="ChatClosedHeader" value="$ChatClosedHeader" size="30" />
 		</td>
 	</tr>
-	
+
 	<tr><!-- ChatClosedBody -->
 		<td class="l" valign="top">
 			Chat Closed: Message
@@ -923,6 +923,43 @@ HEREDOCDOCDOCHEREDOC
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
 <script type="text/javascript" src="$config->{NonCGIURL}/ext/colorpicker/jquery.jqcp.min.js"></script>
 ~ . q~
+<style type="text/css">
+	.colorpicker-cell {
+		cursor: pointer;
+	}
+	#color_picker {
+		text-align: center;
+		margin-left: auto;
+		margin-right: auto;
+	}
+	#lol-color-dialog {
+		text-align: center;
+		background-color: white;
+	}
+	.ui-dialog {
+		border: 1px solid #888888;
+		padding: 3px;
+		background-color: black;
+		-moz-box-shadow: #777777 2px 2px 10px;
+	}
+	.ui-dialog-titlebar {
+		background-color: black;
+		color: white;
+		padding: 3px;
+		font-weight: bold;
+		text-align: center;
+	}
+	.ui-dialog-titlebar-close {
+		display: none;
+	}
+	.ui-dialog-buttonpane {
+		clear: both;
+		text-align: center;
+	}
+	.ui-dialog-buttonpane button {
+		margin: 10px;
+	}
+</style>
 <script type="text/javascript">
 
 // Change the color box when requested
@@ -934,13 +971,62 @@ HEREDOCDOCDOCHEREDOC
 		$('#colorpicker-' + idsplit[1]).css({ backgroundColor: element.val() });
 	} // end colorchange_callback
 
+// Open the color picker when color boxes are clicked
+	function colorbox_callback(event) {
+		var element = $(event.target);
+		var idsplit = element.attr('id').split('-');
+		if(!idsplit || !idsplit[1])
+			return;
+		var color_name = idsplit[1];
+		var color_hex = $('#color-' + color_name).attr('value');
+		console.debug(color_hex);
+		$('#color_value').jqcp_setColor(color_hex);
+		$('#color-current').attr('value', color_name);
+		$('#lol-color-dialog').dialog('open');
+	} // end colorbox_callback
+
 // And the ondomready hook...
 	$().ready(function(){
+	// Color box changing
 		$('input.colorbox').focus(colorchange_callback);
 		$('input.colorbox').blur(colorchange_callback);
+		$('div.colorpicker-cell').click(colorbox_callback);
+	// The widget
+		$('#color_picker').jqcp();
+		$('#color_value').jqcp_setObject();
+	// The dialog
+		$('#lol-color-dialog').dialog({
+			autoOpen: false,
+			height: 335,
+			width: 300,
+			resizable: false,
+			title: "Pick a Color",
+			buttons: {
+				"Select This Color": function() {
+					var color_name = $('#color-current').attr('value');
+					$('#color-' + color_name).attr('value', $('#color_value').attr('value'));
+					$(this).dialog('close');
+					$('#color-' + color_name).blur();
+				},
+				"Cancel": function() { $(this).dialog('close'); }
+			}
+		});
 	});
 </script>
 ~ . qq~
+<div id="lol-color-box-hidden-wtfery" style="display: none;">
+	<input type="hidden" id="jqcp_h" size="3" value="0"/>
+	<input type="hidden" id="jqcp_s" size="3" value="0"/>
+	<input type="hidden" id="jqcp_l" size="3" value="0"/>
+	<input type="hidden" id="jqcp_r" size="3" value="255"/>
+	<input type="hidden" id="jqcp_g" size="3" value="255"/>
+	<input type="hidden" id="jqcp_b" size="3" value="255"/>
+</div>
+<div id="lol-color-dialog" style="display: none;">
+	<div id="color_picker"></div>
+	<input type="hidden" name="color-current" id="color-current" value="" />
+	Current Color: <input type="text" id="color_value" class="jqcp_value" size="8" value="#ffffff" />
+</div>
 <div class="cpanel-wrapper">
 <br />
 <form method="post" action="$config->{CPanelSriptName}">

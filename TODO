@@ -10,8 +10,8 @@ Natter TODO
    polling rather than use meta refresh.  Evaluate continuing to write the
    messages.html file as a fallback for proxies / bots.
  - Chat roster for the right frame.  Presence API for proxies / bots.
- - Ignore list (session-based)
- - Private whispers?
+ - Ignore list? (session-based)  (If not, punt to 5.6)
+ - Private whispers?  (If not, punt to 5.6)
 
 5.2 (Codename: "Undermine")
  - Quick & dirty port of control panel and guard scripts to PHP
@@ -24,7 +24,7 @@ Natter TODO
 
 5.5
  - Refactor & cleanup from Port
- - Split out HTML from code (templateize)
+ - Split out HTML from code where needed
 
 5.6 (Codename: "Assassout")
  - MySQL port
