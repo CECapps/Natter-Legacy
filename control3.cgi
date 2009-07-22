@@ -921,6 +921,7 @@ HEREDOCDOCDOCHEREDOC
 	# Build the page!
 		my $html = qq~
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
+<script type="text/javascript" src="$config->{NonCGIURL}/ext/colorpicker/jquery.jqcp.min.js"></script>
 ~ . q~
 <script type="text/javascript">
 
@@ -965,6 +966,7 @@ HEREDOCDOCDOCHEREDOC
 		}));
 	} # end action_edit_style
 
+
 # lawl, boxes
 	sub edit_style_control_color {
 		my($key, $description, $value) = @_;
@@ -982,6 +984,7 @@ HEREDOCDOCDOCHEREDOC
 	</tr>
 		~;
 	} # end edit_style_control_color
+
 
 	sub edit_style_control_text {
 		my($key, $description, $value) = @_;
