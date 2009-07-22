@@ -104,7 +104,7 @@ our $VERSION_TAG = '"Trespass"';
 			MessageLimit EnableCaptions DisableCaptionBR RefreshRate
 			DisableLamenessFilter TimeZoneCode TimeZoneName ChatName COPPAAge
 			CookiePrefix CheckProxyForward HttpBLAPIKey BannedRedirect
-			ChatPassword PasswordAttempts MultiChat CSSFile
+			ChatPassword PasswordAttempts MultiChat
 		~;
 		foreach my $setting (@migrate) {
 			$dbh->do('INSERT INTO settings(name,value) VALUES(?,?)', undef, $setting, $config->{$setting});
@@ -303,8 +303,6 @@ our $VERSION_TAG = '"Trespass"';
 		foreach my $row (@{$dbh->selectall_arrayref('SELECT name,value FROM settings')}) {
 			$config->{$row->[0]} = $row->[1];
 		} # end while
-	# Time to set up defaults.
-		$config->{CSSFile} ||= 'style.php';
 	# More defaults.
 	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
@@ -357,7 +355,7 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
 	# Sigh, styles.
 		my $style_number = 1;
-		if(0 && $config->{StyleNumber}) {
+		if($config->{StyleNumber}) {
 			$style_number = $config->{StyleNumber};
 		} else {
 			$style_number = 1 if($config->{CSSFile} =~ m/blue/);

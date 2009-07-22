@@ -250,23 +250,6 @@ WTB_TEMPLATE_LIBRARY_PST
 		my $ChatClosedFooter = CGI::escapeHTML($config->{ChatClosedFooter});
 	# ChatClosed
 		my $ChatClosedChecked = $config->{ChatClosed} ? ' checked="checked"' : '';
-	# CSSFile
-		my %css_files = (
-			'style.php' => 'default',
-			'style_blue.php' => 'Blue',
-			'style_bronze.php' => 'Bronze',
-			'style_orange.php' => 'Orange',
-		);
-		my $CSSFile = '';
-		foreach my $file (sort keys %css_files) {
-			$CSSFile .= '<option value="'
-			          . $file
-					  . '"'
-					  . ($config->{CSSFile} eq $file ? ' selected="selected"' : '')
-					  . '>'
-					  . $css_files{$file}
-					  . '</option>';
-		} # end foreach
 
 	# Emit the HTML.
 		$response->setBody(standardHTML({
@@ -274,7 +257,7 @@ WTB_TEMPLATE_LIBRARY_PST
 			body => <<YEGODS_SO_MUCH_HTML
 <div class="cpanel-wrapper">
 <br />
-<form method="post" action="$config->{CPanelSriptName}">
+<form method="post" action="$config->{CPanelScriptName}">
 <input type="hidden" name="action" value="save_settings" />
 <table border="0" cellspacing="0" cellpadding="2" id="cpanel-settings" align="center" width="650">
 	<caption style="text-align: left;">
@@ -381,19 +364,6 @@ WTB_TEMPLATE_LIBRARY_PST
 	</tr>
 
 	<tr><th colspan="2">Feature Settings</th></tr>
-
-	<tr><!-- CSSFile -->
-		<td class="l">
-			Stylesheet
-			<br />
-			<span>Which stylesheet file shall be used?</span>
-		</td>
-		<td valign="top">
-			<select id="CSSFile" name="CSSFile">
-				$CSSFile
-			</select>
-		</td>
-	</tr>
 
 	<tr><!-- MessageLimit -->
 		<td class="l">
@@ -581,7 +551,7 @@ YEGODS_SO_MUCH_HTML
 	sub action_save_settings {
 		my @string_settings = qw~
 			TimeZoneCode TimeZoneName ChatName HttpBLAPIKey BannedRedirect ChatPassword
-			CSSFile CookiePrefix ChatClosedHeader ChatClosedBody ChatClosedFooter
+			CookiePrefix ChatClosedHeader ChatClosedBody ChatClosedFooter
 		~;
 		my @numeric_settings = qw~
 			MessageLimit RefreshRate COPPAAge PasswordAttempts PasswordLockoutTime
@@ -768,7 +738,21 @@ $err
 
 # List the current styles, allow modification of the current style, creation of new styles
 	sub action_manage_styles {
+		my $styles = $dbh->selectall_hashref('SELECT * FROM styles', 'id');
+	# Right then, are we a save?
+		if($request->isPost() && exists($styles->{ $in{active_style} + 0 })) {
+			$dbh->do('BEGIN TRANSACTION');
+			$dbh->do('DELETE FROM settings WHERE name = ?', undef, 'StyleNumber');
+			$dbh->do('INSERT INTO settings(name, value) VALUES(?, ?)', undef, 'StyleNumber', $in{active_style} + 0);
+			$dbh->do('COMMIT');
+			$response->addHeader('Location', $config->{CPanelScriptName} . '?action=manage_styles');
+			return;
+		} # end if
+
 		my $html = qq~
+		<div class="cpanel-wrapper">
+			<form method="post" action="$config->{CPanelScriptName}">
+			<input type="hidden" name="action" value="manage_styles" />
 			<br />
 			<table align="center" id="cpanel-settings">
 				<caption style="text-align: left;">
@@ -777,26 +761,33 @@ $err
 				<tr>
 					<th>#</th>
 					<th>Name</th>
-					<th>&nbsp;</th>
-					<th>&nbsp;</th>
+					<th>Active</th>
+					<th colspan="2">&nbsp;</th>
 				</tr>
 		~;
 
-		my $styles = $dbh->selectall_hashref('SELECT * FROM styles', 'id');
 		foreach my $style_id (sort keys %$styles) {
 			my $style = $styles->{$style_id};
 			my $safe_name = CGI::escapeHTML($style->{name});
-			my $active = $config->{StyleNumber} == $style->{id} ? ' <i>(Currently Selected)</i>' : '';
+			my $selected = $style_id == $config->{StyleNumber} ? ' checked="checked"' : '';
 			$html .= <<HEREDOCDOCDOCHEREDOC;
 			<tr>
-				<td>$style->{id}</td>
-				<td>$safe_name$active</td>
+				<td>$style_id}</td>
+				<td>$safe_name</td>
+				<td align="center"><input type="radio" value="$style_id" name="active_style" $selected /></td>
 				<td>[<a href="$config->{CGIURL}/control3.cgi?action=edit_style&style=$style->{id}">edit</a>]</td>
 				<td>[<a href="$config->{CGIURL}/control3.cgi?action=edit_style&style=$style->{id}&clone=1">clone</a>]</td>
 			</tr>
 HEREDOCDOCDOCHEREDOC
 		} # end foreach
-		$html .= '</table><br />';
+		$html .= '
+</table>
+<br />
+<center>
+	<input type="submit" value="Select Style" class="button" />
+</center>
+</form>
+		';
 
 		$response->setBody(standardHTML({
 			header => 'Manage Styles',
@@ -809,8 +800,10 @@ HEREDOCDOCDOCHEREDOC
 # Edit a style.
 	sub action_edit_style {
 		my %style;
+		my $style_id = $in{style} + 0;
+		my $clone = !!($in{clone} + 0);
 		my $sth = $dbh->prepare('SELECT name, value FROM style_values WHERE style_id = ?', undef);
-		$sth->execute($in{style} + 0);
+		$sth->execute($style_id);
 		while(my($name, $value) = $sth->fetchrow_array()) {
 			$style{$name} = $value;
 		} # end while
@@ -896,9 +889,19 @@ HEREDOCDOCDOCHEREDOC
 				type => 'text',
 				size => 20,
 			},
+			'_StyleName'		=> {
+				title => 'Style Name',
+				desc => 'The name of this style.',
+				type => 'text',
+				size => 20,
+				value => ($dbh->selectrow_array('SELECT name FROM styles WHERE id = ?', undef, $style_id))[0]
+			},
 		};
+	# Are we a clone?  Twiddle the name.
+		$style_descriptions->{_StyleName}->{value} = 'Copy of ' . $style_descriptions->{_StyleName}->{value} if($clone);
 	# Sort order
 		my @order = qw(
+			_StyleName
 			BGColor
 			TextColor
 			DarkTextColor
@@ -917,6 +920,37 @@ HEREDOCDOCDOCHEREDOC
 			PoweredByColor
 			AjaxLoader
 		);
+
+	# Okay, is this a form submit?
+		if($request->isPost()) {
+			foreach my $key (@order) {
+				if($style_descriptions->{$key}->{type} eq 'color') {
+					$style{$key} = fix_color($in{$key});
+				} elsif(exists $style{$key}) {
+					$style{$key} = $in{$key};
+				} # end if
+			} # end foreach
+			$dbh->do('BEGIN TRANSACTION');
+		# Are we creating a cloned copy of this style?
+			if($clone) {
+				my $clone_name = 'I AM CLONE ' . rand();
+				$dbh->do('INSERT INTO styles(name, active) VALUES(?, 1)', undef, $clone_name);
+				$style_id = ($dbh->selectrow_array('SELECT id FROM styles WHERE name = ?', undef, $clone_name))[0];
+			} # end if
+		# Nuke what we have
+			$dbh->do('DELETE FROM style_values WHERE style_id = ?', undef, $style_id);
+		# Update the name...
+			$dbh->do('UPDATE styles SET name = ? WHERE id = ?', undef, $in{_StyleName}, $style_id);
+			$style_descriptions->{_StyleName}->{value} = $in{_StyleName};
+		# Now rewrite all settings
+			foreach my $key (keys %style) {
+				$dbh->do('INSERT INTO style_values(style_id, name, value) VALUES(?, ?, ?)', undef, $style_id, $key, $style{$key});
+			} # end foreach
+			$dbh->do('COMMIT');
+		# Okay, we're done, redirect.
+			$response->addHeader('Location', $config->{CPanelScriptName} . '?action=edit_style&style=' . $style_id);
+			return;
+		} # end if
 
 	# Build the page!
 		my $html = qq~
@@ -1030,7 +1064,9 @@ HEREDOCDOCDOCHEREDOC
 <div class="cpanel-wrapper">
 <br />
 <form method="post" action="$config->{CPanelSriptName}">
-<input type="hidden" name="action" value="save_settings" />
+<input type="hidden" name="action" value="edit_style" />
+<input type="hidden" name="style" value="$style_id" />
+<input type="hidden" name="clone" value="$clone" />
 <table border="0" cellspacing="0" cellpadding="2" id="cpanel-settings" align="center" width="650">
 	<caption style="text-align: left;">
 	&laquo; <a href="$config->{CPanelScriptName}?action=manage_styles">Back</a>
@@ -1044,7 +1080,14 @@ HEREDOCDOCDOCHEREDOC
 				$html .= edit_style_control_text($key, $desc, $style{$key});
 			}
 		} # end foreach
-		$html .= '</table>';
+		$html .= '
+</table>
+<br />
+<center>
+	<input type="submit" value="Save Style" class="button" />
+</center>
+</form>
+		';
 		$response->setBody(standardHTML({
 			header => 'Edit a Style',
 			body => $html,
@@ -1064,7 +1107,7 @@ HEREDOCDOCDOCHEREDOC
 			<span>$description->{desc}</span>
 		</td>
 		<td valign="top">
-			<input type="text" class="colorbox" name="$key" id="color-$key" value="$value" size="8" />
+			<input type="text" class="colorbox" name="$key" id="color-$key" value="$value" size="8" autocomplete="off" />
 			<div class="colorpicker-cell" id="colorpicker-$key" style="background-color: $value;">&nbsp;</div>
 		</td>
 	</tr>
@@ -1074,6 +1117,7 @@ HEREDOCDOCDOCHEREDOC
 
 	sub edit_style_control_text {
 		my($key, $description, $value) = @_;
+		$value = $description->{value} if(!$value);
 		$value = CGI::escapeHTML($value);
 		return qq~
 	<tr><!-- $key -->
@@ -1083,7 +1127,7 @@ HEREDOCDOCDOCHEREDOC
 			<span>$description->{desc}</span>
 		</td>
 		<td valign="top">
-			<input type="text" name="$key" id="text-$key" value="$value" size="$description->{size}" />
+			<input type="text" name="$key" id="text-$key" value="$value" size="$description->{size}" autocomplete="off" />
 		</td>
 	</tr>
 		~;
