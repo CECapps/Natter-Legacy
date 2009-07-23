@@ -19,6 +19,7 @@ class Natter_Util {
 
 	public static function getConfigWithDefaults() {
 		global $config;
+		$config['ChatTopFrameHeight'] = isset($config['ChatTopFrameHeight']) ? $config['ChatTopFrameHeight'] : 65;
 	// Certain things are hard-coded, do so now.
 		$config['Index']			= 'index.php';
 		$config['Script'] 			= 'chat3.cgi';

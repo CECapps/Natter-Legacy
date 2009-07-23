@@ -326,6 +326,8 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{MultiChat} ||= 0;
 	# Always break after captions, if enabled.
 		$config->{DisableCaptionBR} ||= 0;
+	# 65 pixels for the chattop
+		$config->{ChatTopFrameHeight} = defined $config->{ChatTopFrameHeight} ? $config->{ChatTopFrameHeight} : 65;
 	# The chat is open by default
 		$config->{ChatClosed} ||= 0;
 	# Set the default closed message

@@ -250,6 +250,8 @@ WTB_TEMPLATE_LIBRARY_PST
 		my $ChatClosedFooter = CGI::escapeHTML($config->{ChatClosedFooter});
 	# ChatClosed
 		my $ChatClosedChecked = $config->{ChatClosed} ? ' checked="checked"' : '';
+	# ChatTopFrameHeight
+		my $ChatTopFrameHeight = $config->{ChatTopFrameHeight} + 0;
 
 	# Emit the HTML.
 		$response->setBody(standardHTML({
@@ -532,6 +534,18 @@ WTB_TEMPLATE_LIBRARY_PST
 		</td>
 	</tr>
 
+        <tr><!-- ChatTopFrameHeight -->
+                <td class="l">
+                        Frameset Top Frame Height
+                        <br />
+                        <span>Height, in pixels, of the top frame in the chat frameset.
+			Set to zero to disable the top frame.</span>
+                </td>
+                <td valign="top">
+                        <input type="text" name="ChatTopFrameHeight" id="ChatTopFrameHeight" value="$ChatTopFrameHeight" size="3" />
+                </td>
+        </tr>
+
 </table>
 <br />
 <center>
@@ -554,7 +568,7 @@ YEGODS_SO_MUCH_HTML
 			CookiePrefix ChatClosedHeader ChatClosedBody ChatClosedFooter
 		~;
 		my @numeric_settings = qw~
-			MessageLimit RefreshRate COPPAAge PasswordAttempts PasswordLockoutTime
+			ChatTopFrameHeight MessageLimit RefreshRate COPPAAge PasswordAttempts PasswordLockoutTime
 		~;
 		my @bool_settings = qw~
 			EnableCaptions CheckProxyForward MultiChat ChatClosed

@@ -36,7 +36,6 @@ class Natter_Action_Index implements Natter_Action {
 		$template = new Natter_Template('index');
 
 	// Do we display a chat top frame?
-		$config['ChatTopFrameHeight'] = 65;
 		$template->show_chat_top = $config['ChatTopFrameHeight'] > 0 ? true : false;
 		$template->chat_top_pixels = $config['ChatTopFrameHeight'];
 	// Do we have a static HTML file for the chat top?
