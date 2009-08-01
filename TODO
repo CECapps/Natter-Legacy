@@ -1,10 +1,5 @@
 Natter TODO
 
-5.0 (Goal: PHP port, Codename "Trespass")
- - PHP framework
- - Move all .html files to .php
- - Control panel styles
-
 5.1 (Codename: "Transgression")
  - Death to the White Flash.  Rebuild message frame to add posts via AJAX and
    polling rather than use meta refresh.  Evaluate continuing to write the
@@ -28,7 +23,7 @@ Natter TODO
 
 5.6 (Codename: "Assassout")
  - MySQL port
- - Posgres port
+ - Postgres port
  - Store logs in database (MySQL & Postgres only?  Evaluate SQLite log browse / add performance for large logs.)
  - Improved log browser.  Search by date, post content, username.  Post history by username.
  - Last second features, if anyone can come up with anything compelling.

@@ -19,8 +19,8 @@ use DateTime;
 use Socket;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '5.0.0';
-our $VERSION_TAG = '"Trespass"';
+our $VERSION = '5.1.0';
+our $VERSION_TAG = '"Transgression"';
 
 
 # Create a "Powered By" HTML blub
@@ -353,7 +353,7 @@ our $VERSION_TAG = '"Trespass"';
 		$config->{GuardScriptName} 	= $config->{CGIURL} 		. "/" . $config->{GuardScript};
 		$config->{CPanelScriptName}	= $config->{CGIURL} 		. "/" . $config->{CPanelScript};
 		$config->{MessagesFile} 	= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . $config->{MessagesFX};
-		$config->{MessagesName} 	= $config->{NonCGIURL} 		. "/" . $config->{MessagesFN} . $config->{MessagesFX};
+		$config->{MessagesName} 	= $config->{IndexName} 		. '?action=messages&';
 		$config->{PostlogFile} 		= $config->{NonCGIPath} 	. "/" . $config->{MessagesFN} . "_bans.cgi";
 	# Sigh, styles.
 		my $style_number = 1;

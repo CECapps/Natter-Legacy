@@ -33,7 +33,7 @@ class Natter_Util {
 		$config['GuardScriptName'] 	= $config['CGIURL'] 		. "/" . $config['GuardScript'];
 		$config['CPanelScriptName']	= $config['CGIURL'] 		. "/" . $config['CPanelScript'];
 		$config['MessagesFile'] 	= $config['NonCGIPath'] 	. "/" . $config['MessagesFN'] . $config['MessagesFX'];
-		$config['MessagesName'] 	= $config['NonCGIURL'] 		. "/" . $config['MessagesFN'] . $config['MessagesFX'];
+		$config['MessagesName'] 	= $config['IndexName'] 		. '?action=messages&';
 		$config['PostlogFile'] 		= $config['NonCGIPath'] 	. "/" . $config['MessagesFN'] . "_bans.cgi";
 		if(isset($config['StyleNumber']))
 			$config['CSSName']              = $config['IndexName']          . '?action=css&style=' . $config['StyleNumber'];

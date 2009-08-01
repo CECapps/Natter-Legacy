@@ -11,7 +11,7 @@
 <?php if($this->is_guard): ?>
 	<frameset cols="*,210" border="2">
 <?php endif; ?>
-	<frame src="messages.html" name="messages" scrolling="auto">
+	<frame src="<?php echo $this->messages_url; ?>" name="messages" scrolling="auto">
 <?php if($this->is_guard): ?>
 	<frame src="<?php echo $this->guard_script_url ?>" name="ips" id="ips" scrolling="auto">
 	</frameset>

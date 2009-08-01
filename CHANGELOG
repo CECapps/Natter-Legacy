@@ -1,5 +1,17 @@
 Natter Changelog
 
+Version: 5.1.0
+Codename: Transgression
+Date: July 31, 2009
+ - Death to the White Flash!  Natter now uses modern technology to bring you
+   a seamless, screen-flash-free chatting experience.  The messages frame will
+   now load new messages behind the scenes, without reloading the entire page.
+ - Bots and Proxies should not need major changes.  The messages.html file is
+   still being written.  The messageline div has been slightly rearranged, and
+   now sports timestamps and message IDs for your convenience.
+ - 
+
+
 Version: 5.0.0
 Codename: Trespass
 Date: July 21, 2009

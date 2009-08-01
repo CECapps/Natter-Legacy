@@ -696,7 +696,7 @@ COPPA_CHECK
 
 	function refresh_chat() {
 		if($('#frm'))
-			parent.messages.location.href = '~ . $config->{MessagesName} . q~?' + Math.floor(Math.random()*1000);
+			parent.messages.location.href = '~ . $config->{MessagesName} . q~?';
 	} // end refresh_chat
 
 	$().ready(function(){
@@ -1077,10 +1077,11 @@ multichat.init();
 			} # end if
 		} # end if
 		my $dt = getTime();
+		my $timestamp = time();
 		my $timebit = $dt->strftime('%H:%M');
 
 	# Piece together the new message line
-		my $newline = qq(<div class="messageline"> <span class="thename"><font color="$namecolor">$name </font></span>);
+		my $newline = qq( <span class="thename"><font color="$namecolor">$name </font></span>);
 		$newline .= qq! &nbsp;<span class="thecaption">$captionhtml</span> ! if $captionhtml;
 		$newline .= qq( <span class="thelinks">$linkhtml</span>) if($linkhtml);
 		$newline .= qq! <br />&nbsp;&nbsp;! if($config->{EnableCaptions} && !$config->{DisableCaptionBR});
@@ -1099,7 +1100,16 @@ multichat.init();
 		my @messages = <$fh>;
 		shift @messages;
 		pop @messages;
-		chomp foreach @messages;
+	# Grab our top-most message id.  Our new message is top + 1, of course.
+		my $max_id = 0;
+		foreach(@messages) {
+			chomp;
+			if(m/^<div class="messageline" data-timestamp="\d+" id="message-(\d+)"> /) {
+				$max_id = $1 if($1 > $max_id);
+			} # end if
+		} # end foreach
+		$max_id++;
+		$newline = qq~<div class="messageline" data-timestamp="$timestamp" id="message-$max_id">~ . $newline;
 	# Drop the first line on top
 		my @lines;
 		unshift(@messages, $newline);

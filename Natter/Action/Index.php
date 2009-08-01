@@ -43,6 +43,8 @@ class Natter_Action_Index implements Natter_Action {
 	// Are we dealing with an admin or guard?  They get the guard frameset.
 		$template->is_guard = ($session->data['guard'] || $session->data['admin']) ? true : false;
 		$template->guard_script_url = $config['GuardScriptName'] . '?action=list_users';
+	// Where's our messages.html?
+		$template->messages_url = $config['IndexName'] . '?action=messages';
 
 		$html = $template->render();
 		$this->response->setBody($html);

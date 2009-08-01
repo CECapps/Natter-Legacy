@@ -25,6 +25,8 @@ class Natter_HTTPResponse {
 	private $cookies = array();
 	private $body = '';
 	private $done = false;
+	private $status = null;
+	private $status_wording = null;
 
 // Fire up output buffering, though this honestly should be done by the caller.
 	public function __construct() {
@@ -51,6 +53,13 @@ class Natter_HTTPResponse {
 	public function getContentType() {
 		return $this->headers['Content-type'];
 	} // end getContentType
+
+// Set the HTTP status
+	public function setHttpStatus($status_code, $status_wording) {
+		if(!$this->canOutput()) trigger_error('Can not set the HTTP status code, already posted output', E_USER_ERROR);
+		$this->status = $status_code;
+		$this->status_wording = $status_wording;
+	} // end setHttpStatus
 
 // Add an HTTP header
 	public function addHeader($header, $value) {
@@ -114,6 +123,10 @@ class Natter_HTTPResponse {
 		$this->body .= ob_get_clean();
 		$this->addHeader('Content-length', strlen($this->body));
 	// Throw out the headers
+		if($this->status) {
+			header('HTTP/1.0 ' . $this->status . ' ' . $this->status_wording);
+			header('Status: ' .  $this->status . ' ' . $this->status_wording);
+		} // end if
 		foreach($this->headers as $header => $value)
 			header($header . ': ' . $value);
 	// And the cookies

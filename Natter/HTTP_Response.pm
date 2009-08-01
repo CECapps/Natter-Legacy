@@ -29,6 +29,8 @@ package Natter::HTTP_Response;
 			_headers => {
 				'Content-Type' => 'text/html',
 			},
+			_status => 200,
+			_status_message => '',
 			_cookies => [],
 			_body => '',
 			_done => 0,
@@ -57,6 +59,14 @@ package Natter::HTTP_Response;
 	sub getContentType {
 		return $_[0]->{_headers}->{'Content-Type'};
 	} # end getContentType
+
+
+# Set the HTTP status
+	sub setHttpStatus {
+		my $self = shift;
+		$self->{_status} = shift;
+		$self->{_status_message} = shift;
+	} # end setHttpStatus
 
 
 # Add a header to the output
@@ -108,6 +118,7 @@ package Natter::HTTP_Response;
 	# Add the two expected paramaters regarldess of how many headers we have...
 		$headers{'-type'} = $content_type;
 		$headers{'-cookie'} = $self->{_cookies} if scalar @{$self->{_cookies}};
+		$headers{'-status'} = $self->{'_status'};
 	# Print the header and body
 		print $main::cgi->header(%headers);
 		print $self->{_body};
