@@ -673,12 +673,12 @@ COPPA_CHECK
 	# that little problem here.
 		my $name_box;
 		if((exists $in{'name_change'} && $in{'name_change'} eq "true") || $config->{MultiChat}) {
-			$name_box = qq(<input type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">);
+			$name_box = qq(<input tabindex="3" type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">);
 		} else {
 			$name_box = (
 				$clone{'username'} ne "Name"
 				? qq(<input type="hidden" name="username" id="username" value="$clone{username_coded}"><a href="$conglom" id="namechange_link" class="namer"><font color="$clone{color}" class="name"><b>$clone{username}</b></font></a>)
-				: qq(<input type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">)
+				: qq(<input tabindex="3" type="text" class="textbox" id="username" name="username" value="$clone{username_coded}" size="13">)
 			);
 		} # end else
 
@@ -695,9 +695,26 @@ COPPA_CHECK
 	var multichat_enabled = ~ . ($config->{MultiChat} + 0) . q~;
 
 	function refresh_chat() {
-		if($('#frm'))
+		if($('#frm') && window.parent && window.parent.messages && window.parent.messages.messages_refresh)
+			window.parent.messages.messages_refresh();
+		else
 			parent.messages.location.href = '~ . $config->{MessagesName} . q~?';
 	} // end refresh_chat
+
+// Handle ajax events out of band, so other frames may call upon us.
+	ajax_loader_count = 0;
+	function ajax_loader_start() {
+		ajax_loader_count++;
+		if(ajax_loader_count > 0)
+			$('#ajaxloader').addClass('loading');
+	} // end ajax_loader_start
+	function ajax_loader_end() {
+		ajax_loader_count--;
+		if(ajax_loader_count <= 0) {
+			$('#ajaxloader').removeClass('loading');
+			ajax_loader_count = 0;
+		} // end if
+	} // end ajax_loader_end
 
 	$().ready(function(){
 	// Set up hover compat for stupid browsers
@@ -736,14 +753,14 @@ COPPA_CHECK
 		var msg = $('#message');
 		if(msg)
 			msg.focus();
+	// Attach hiding and showing the ajax loading box to the loading box...
+		$().ajaxStart(ajax_loader_start);
+		$().ajaxComplete(ajax_loader_end);
 	// And force a refresh of the messages window
 		refresh_chat();
 	// Relocate the ajax loading box
 		var subm_tl = $('#subm').offset();
 		$('#ajaxloader').css({ top: subm_tl.top + 'px', left: (subm_tl.left - 25) + 'px', position: 'absolute' });
-	// Attach hiding and showing the ajax loading box to the loading box...
-		$('#ajaxloader').ajaxStart(function(){ $(this).addClass('loading') });
-		$('#ajaxloader').ajaxComplete(function(){ $(this).removeClass('loading') });
 	// Hide the name change link and show the name form, when clicked
 		$('#multichat_name').click(function(event){
 			$('#multichat_name').hide();
@@ -768,13 +785,13 @@ $multichat
 				<table width="520" border="0" cellspacing="0" cellpadding="1">
 					<tr>
 						<td align="left" width="145">
-							<input type="text" name="url" id="url" value="$clone{url}" size="13" class="textbox" />
+							<input tabindex="7" type="text" name="url" id="url" value="$clone{url}" size="13" class="textbox" />
 						</td>
 						<td align="center">
-							<input type="text" name="caption" id="caption" value="$clone{caption}" size="13" class="textbox" />
+							<input tabindex="6" type="text" name="caption" id="caption" value="$clone{caption}" size="13" class="textbox" />
 						</td>
 						<td align="right" width="145">
-							<input type="text" name="mcolor" id="mcolor" value="$clone{mcolor}" size="13" class="textbox" />
+							<input tabindex="5" type="text" name="mcolor" id="mcolor" value="$clone{mcolor}" size="13" class="textbox" />
 						</td>
 					</tr>
 					<tr>
@@ -787,11 +804,11 @@ $multichat
 							<div id="ajaxloader">&nbsp;</div>
 							<input tabindex="2" type="submit" class="button" value="Send" name="subm" id="subm" accesskey="s" />
 							&nbsp;&nbsp;
-							<input type="button" class="button" onclick="refresh_chat()" name="upd" id="upd" value="Update" />
+							<input tabindex="8" type="button" class="button" onclick="refresh_chat()" name="upd" id="upd" value="Update" />
 						</td>
 						<td align="center">$name_box<span id="multichat_name" class="namer"></span></td>
 						<td align="right" valign="top" width="145">
-							<input type="text" name="color" id="color" class=textbox value="$clone{color}" size="13" />
+							<input tabindex="4" type="text" name="color" id="color" class=textbox value="$clone{color}" size="13" />
 						</td>
 					</tr>
 				</table>
@@ -857,7 +874,7 @@ multichat = {
 				$('#subm').removeAttr('disabled');
 				$('#subm').removeClass('disabled');
 			// And refresh the chat frame
-				refresh_chat();
+				setTimeout(refresh_chat, 250);
 			// And refocus the posting form.
 				$('#message').focus();
 			},

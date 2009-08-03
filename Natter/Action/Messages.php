@@ -30,14 +30,16 @@ class Natter_Action_Messages implements Natter_Action {
 		$this->session = $session;
 	} // end __construct
 
+
 	public function run() {
 		global $config;
 	// Fetch our message file info
 		$lines = $this->getMessageLines();
 		$this->response->addHeader('Last-Modified', date(DATE_RFC1123, $lines['newest_timestamp']));
-	// Did we get an If-Modified-Since?
+
+// Did we get an If-Modified-Since?
 		$ims = $this->request->getHeader('If-Modified-Since');
-		if($ims) {
+		if($ims && !isset($_REQUEST['newer_than'])) {
 			$ims = strtotime($ims);
 			if(isset($ims) && $ims - $lines['newest_timestamp'] == 0) {
 			// The requested timestamp is still our max, no need to reutrn data.
@@ -45,12 +47,7 @@ class Natter_Action_Messages implements Natter_Action {
 				return;
 			} // end if
 		} // end if
-	// If we aren't getting a request for a line-newer-than, let's just spit out the page.
-		if(!isset($_REQUEST['newer_than'])) {
-			unset($lines['newest_timestamp']);
-			$this->response->setBody(join("\n", $lines));
-			return;
-		} // end if
+
 	// Otherwise, let's prepare the newer lines.
 		$newer_than = array();
 		$newest = 0;
@@ -59,14 +56,35 @@ class Natter_Action_Messages implements Natter_Action {
 				continue;
 			if($message_id > $newest)
 				$newest = $message_id;
-			if($message_id > $_REQUEST['newer_than'])
+			if(isset($_REQUEST['newer_than']) && $message_id > $_REQUEST['newer_than'])
 				$newer_than[ $message_id ] = $line;
 		} // end foreach
+
+	// If we aren't getting a request for a line-newer-than, let's just spit out the page.
+		if(!isset($_REQUEST['newer_than'])) {
+			$template = new Natter_Template('messages_frame');
+			$template->lines = $lines;
+			$template->newest_id = $newest;
+			$this->response->setBody($template->render());
+			return;
+		} // end if
+
+	// We need to wrap the message list to get sane JSON results...
+		$json_messages = array();
+		foreach($newer_than as $k => $v) {
+			$json_messages[] = array(
+				'message_id' => $k,
+				'html' => $v
+			);
+		} // end foreach
+		$json_messages = array_reverse($json_messages);
+
 	// Now spit it back out as JSON
 		$this->response->setContentType('text/javascript');
-		$this->response->setBody(json_encode(array( 0 => count($newer_than), $newest, $newer_than )));
+		$this->response->setBody(json_encode(array( 0 => count($newer_than), $newest, $json_messages )));
 		return;
 	} // end run
+
 
 
 /**

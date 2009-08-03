@@ -46,11 +46,11 @@
 	pre { font-family: Courier New, Courier, fixed; font-size: 125%; }
 
 /* Message lines in the chat */
-	.messageline { padding: 0px 0px 6px 10px; font-size: 100%; font-family: Verdana, Arial, Helvetica, sans-serif  }
+	.messageline { padding: 0px 0px 0px 7px; font-size: 100%; font-family: Verdana, Arial, Helvetica, sans-serif; line-height: 150%;  }
 	.thename { font-size: 150%; font-family: Times New Roman, Times Roman, Times, serif; font-weight: bold  }
 	.thecaption { font-size: 90%; font-family: Verdana, Arial, Helvetica, sans-serif }
 	.thelinks { font-size: 140%; font-family: Wingdings }
-	.thetime { font-size: 80%; font-family: Verdana, Arial, Helvetica, sans-serif }
+	.thetime { font-size: 75%; font-family: Verdana, Arial, Helvetica, sans-serif }
 	.themessage { font-size: 100%; font-family: Verdana, Arial, Helvetica, sans-serif }
 /* Links in the message line */
 	a.url, a.email {
@@ -135,7 +135,7 @@
 		position: absolute;
 	}
 	#ajaxloader.loading {
-		background-image: url({$style[AjaxLoader]});
+		background-image: url(<?php echo $this->style['AjaxLoader']; ?>);
 		background-attachment: scroll;
 		background-position: center center;
 		background-repeat: no-repeat;

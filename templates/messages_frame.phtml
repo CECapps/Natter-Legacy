@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title><?php echo $this->config['ChatName']; ?> - Messages</title>
+	<link rel="stylesheet" href="<?php echo $this->config['CSSName']; ?>">
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+	<script type="text/javascript">
+		var newest_id = <?php echo $this->newest_id; ?>;
+		var max_messages = <?php echo $this->config['MessageLimit']; ?>;
+		var timeout = null;
+	// Onload GO.
+		$().ready(function(){
+			$().ajaxStart(ajax_loader_start);
+			$().ajaxComplete(ajax_loader_end);
+			timeout = setTimeout(messages_refresh, 8000);
+		});
+
+	// Try to use the ajax loading image in the form frame, if we can.
+		function ajax_loader_start() {
+			if(window.parent && window.parent.input && window.parent.input.ajax_loader_start)
+				window.parent.input.ajax_loader_start();
+		} // end ajax_loader_start
+		function ajax_loader_end() {
+			if(window.parent && window.parent.input && window.parent.input.ajax_loader_end)
+				window.parent.input.ajax_loader_end();
+		} // end ajax_loader_end
+
+	// Fetch newish messages
+		function messages_refresh() {
+		// Reset any active timeout.
+			clearTimeout(timeout);
+			$.getJSON(
+				'<?php echo $this->config['IndexName'] ?>',
+				{
+					'action': 'messages',
+					'newer_than': newest_id
+				},
+				function(data, status) {
+					if((status == 'notmodified') || (status == 'success')) {
+						var new_message_count = data[0];
+						var newest_message_id = data[1];
+						var new_messages = data[2];
+						if(new_message_count > 0) {
+						// Slide in messages every 750ms, taking 500 to slide.
+							var delay = 0;
+							var fade = 500;
+							var step = 250;
+							for(var i in new_messages) {
+								delay += step;
+								setTimeout(function(html, message_id, fade){
+									$('#message_container').prepend(html);
+									$('#message-' + message_id).hide().slideDown(fade);
+								}, delay, new_messages[i].html, new_messages[i].message_id, fade);
+								delay += fade;
+							} // end for
+						// Now, prune excess messages, once the last message has been added.
+							setTimeout(function() {
+								$('#message_container div.messageline:gt(' + (max_messages - 1) + ')').slideUp(fade, function(){ $(this).remove(); });
+							}, delay);
+						} // end if
+					} else {
+					} // end if
+					timeout = setTimeout(messages_refresh, 8000);
+					newest_id = newest_message_id;
+				}
+			);
+		} // end messages_refresh
+	</script>
+</head>
+<body>
+<div id="message_container">
+<?php
+	foreach($this->lines as $k => $line) {
+		if(!is_numeric($k))
+			continue;
+		echo $line . "\n";
+	} // end foreach
+	echo "</div>\n";
+	include 'poweredby.phtml';
+?>
+</body>
+</html>
