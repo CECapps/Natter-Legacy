@@ -102,7 +102,7 @@ class Natter_Action_Messages implements Natter_Action {
 				$lines[ $matches[2] ] = $line;
 				if($matches[1] > $newest_timestamp)
 					$newest_timestamp = $matches[1];
-			} elseif(preg_match('/^<div class="messageline"> /', $line, $matches)) {
+			} elseif(preg_match('/^<div class="messageline/', $line, $matches)) {
 				$lines[] = $line;
 			} // end if
 		} // end foreach
