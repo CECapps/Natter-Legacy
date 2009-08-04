@@ -39,7 +39,7 @@ class Natter_Action_Messages implements Natter_Action {
 
 // Did we get an If-Modified-Since?
 		$ims = $this->request->getHeader('If-Modified-Since');
-		if($ims && !isset($_REQUEST['newer_than'])) {
+		if(false && $ims && !isset($_REQUEST['newer_than'])) {
 			$ims = strtotime($ims);
 			if(isset($ims) && $ims - $lines['newest_timestamp'] == 0) {
 			// The requested timestamp is still our max, no need to reutrn data.
