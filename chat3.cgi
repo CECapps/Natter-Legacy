@@ -1123,7 +1123,7 @@ multichat.init();
 		my $max_id = 0;
 		foreach(@messages) {
 			chomp;
-			if(m/^<div class="messageline" data-timestamp="\d+" id="message-(\d+)"> /) {
+			if(m/^<div class="messageline(?:[^"]+)?" data-timestamp="\d+" id="message-(\d+)"> /) {
 				$max_id = $1 if($1 > $max_id);
 			} # end if
 		} # end foreach

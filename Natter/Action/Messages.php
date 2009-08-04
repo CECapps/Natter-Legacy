@@ -98,7 +98,7 @@ class Natter_Action_Messages implements Natter_Action {
 		$newest_timestamp = 0;
 		foreach($file_contents as $line) {
 			$matches = array();
-			if(preg_match('/^<div class="messageline" data-timestamp="(\d+)" id="message-(\d+)"> /', $line, $matches)) {
+			if(preg_match('/^<div class="messageline(?:[^"]+)?" data-timestamp="(\d+)" id="message-(\d+)"> /', $line, $matches)) {
 				$lines[ $matches[2] ] = $line;
 				if($matches[1] > $newest_timestamp)
 					$newest_timestamp = $matches[1];
