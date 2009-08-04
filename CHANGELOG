@@ -9,7 +9,7 @@ Date: July 31, 2009
  - Bots and Proxies should not need major changes.  The messages.html file is
    still being written.  The messageline div has been slightly rearranged, and
    now sports timestamps and message IDs for your convenience.
- - 
+
 
 
 Version: 5.0.0

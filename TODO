@@ -5,8 +5,6 @@ Natter TODO
    polling rather than use meta refresh.  Evaluate continuing to write the
    messages.html file as a fallback for proxies / bots.
  - Chat roster for the right frame.  Presence API for proxies / bots.
- - Ignore list? (session-based)  (If not, punt to 5.6)
- - Private whispers?  (If not, punt to 5.6)
 
 5.2 (Codename: "Undermine")
  - Quick & dirty port of control panel and guard scripts to PHP
@@ -27,6 +25,8 @@ Natter TODO
  - Store logs in database (MySQL & Postgres only?  Evaluate SQLite log browse / add performance for large logs.)
  - Improved log browser.  Search by date, post content, username.  Post history by username.
  - Last second features, if anyone can come up with anything compelling.
+ - Ignore list? (session-based)  (Punted from 5.1)
+ - Private whispers?  (Punted from 5.1)
 
 
 6.0 (Goal: Production API, Codename "Danger")
