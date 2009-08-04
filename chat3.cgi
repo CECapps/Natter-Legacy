@@ -1103,12 +1103,14 @@ multichat.init();
 		$newline .= qq( <span class="thelinks">$linkhtml</span>) if($linkhtml);
 		$newline .= qq! <br />&nbsp;&nbsp;! if($config->{EnableCaptions} && !$config->{DisableCaptionBR});
 		$newline .= qq! <span class="thetime"><font color="$msgcolor"> ($timebit) </font></span>!;
-		$newline .= qq( <span class="themessage"><font color="$msgcolor">$message</font></span> </div>);
+		$newline .= qq( <span class="themessage"><font color="$msgcolor">$message</font></span> );
 
 	# If this is a special user entrance, post that instead.  Users logged in as guards don't get this.
+		my $classes = "messageline";
 		if((defined $in{special} && $in{special} eq "entrance")) {
+			$classes = "messageline welcome";
 			$session->{data}->{entered} = 1;
-			$newline = qq~<div class="messageline welcome"> <span class="themessage"><span class="star">*</span> A user has entered the chat.</font></span> <span class="thetime"> ($timebit) </span> </div>~;
+			$newline = qq~ <span class="themessage"><span class="star">*</span> A user has entered the chat.</font></span> <span class="thetime"> ($timebit) </span> ~;
 		} # end if
 
 	# Pull in the message file
@@ -1126,7 +1128,7 @@ multichat.init();
 			} # end if
 		} # end foreach
 		$max_id++;
-		$newline = qq~<div class="messageline" data-timestamp="$timestamp" id="message-$max_id">~ . $newline;
+		$newline = qq~<div class="$classes" data-timestamp="$timestamp" id="message-$max_id">~ . $newline . '</div>';
 	# Drop the first line on top
 		my @lines;
 		unshift(@messages, $newline);
