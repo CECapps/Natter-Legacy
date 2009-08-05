@@ -530,7 +530,8 @@ FORMAT
 <head>
 	<title>$loltitle</title>
 	<link rel="stylesheet" href="$config->{CSSName}" type="text/css" />
-	<script language="JavaScript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+	<script type="text/javascript" src="$config->{NonCGIURL}/natter.js"></script>
 </head>
 <body>
 	<p>$text</p>

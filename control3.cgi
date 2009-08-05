@@ -180,8 +180,7 @@ Welcome to the Chat Control Panel.  Please select an action to perform:
 	<li><a href="$config->{CPanelScriptName}?action=settings">Change Settings</a></li>
 	<li><a href="$config->{CPanelScriptName}?action=manage_styles">Manage Styles</a></li>
 	<li><a href="$config->{CPanelScriptName}?action=logins">Manage Admin/Guard Logins</a></li>
-	<li><a href="$config->{GuardScriptName}?action=frameset">View Chat Guard Frame</a></li>
-	<li><a href="$config->{NonCGIURL}/chat.html">View Chat</a></li>
+	<li><a href="$config->{IndexName}">View Chat</a></li>
 	<li><a href="$config->{CPanelScriptName}?action=logout">Log Out</a></li>
 </ul>
 </div>
@@ -1010,56 +1009,8 @@ HEREDOCDOCDOCHEREDOC
 </style>
 <script type="text/javascript">
 
-// Change the color box when requested
-	function colorchange_callback(event) {
-		var element = $(event.target);
-		var idsplit = element.attr('id').split('-');
-		if(!idsplit || !idsplit[1])
-			return;
-		$('#colorpicker-' + idsplit[1]).css({ backgroundColor: element.val() });
-	} // end colorchange_callback
-
-// Open the color picker when color boxes are clicked
-	function colorbox_callback(event) {
-		var element = $(event.target);
-		var idsplit = element.attr('id').split('-');
-		if(!idsplit || !idsplit[1])
-			return;
-		var color_name = idsplit[1];
-		var color_hex = $('#color-' + color_name).attr('value');
-		console.debug(color_hex);
-		$('#color_value').jqcp_setColor(color_hex);
-		$('#color-current').attr('value', color_name);
-		$('#lol-color-dialog').dialog('open');
-	} // end colorbox_callback
-
 // And the ondomready hook...
-	$().ready(function(){
-	// Color box changing
-		$('input.colorbox').focus(colorchange_callback);
-		$('input.colorbox').blur(colorchange_callback);
-		$('div.colorpicker-cell').click(colorbox_callback);
-	// The widget
-		$('#color_picker').jqcp();
-		$('#color_value').jqcp_setObject();
-	// The dialog
-		$('#lol-color-dialog').dialog({
-			autoOpen: false,
-			height: 335,
-			width: 300,
-			resizable: false,
-			title: "Pick a Color",
-			buttons: {
-				"Select This Color": function() {
-					var color_name = $('#color-current').attr('value');
-					$('#color-' + color_name).attr('value', $('#color_value').attr('value'));
-					$(this).dialog('close');
-					$('#color-' + color_name).blur();
-				},
-				"Cancel": function() { $(this).dialog('close'); }
-			}
-		});
-	});
+	$().ready(cp_style_init);
 </script>
 ~ . qq~
 <div id="lol-color-box-hidden-wtfery" style="display: none;">
