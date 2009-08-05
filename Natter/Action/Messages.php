@@ -35,7 +35,7 @@ class Natter_Action_Messages implements Natter_Action {
 		global $config;
 	// Fetch our message file info
 		$lines = $this->getMessageLines();
-		$this->response->addHeader('Last-Modified', date(DATE_RFC1123, $lines['newest_timestamp']));
+		// $this->response->addHeader('Last-Modified', date(DATE_RFC1123, $lines['newest_timestamp']));
 
 // Did we get an If-Modified-Since?
 		$ims = $this->request->getHeader('If-Modified-Since');
