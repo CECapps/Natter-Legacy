@@ -315,7 +315,8 @@ function messages_refresh() {
 		script_name,
 		{
 			'action': 'messages',
-			'newer_than': newest_id
+			'newer_than': newest_id,
+			'r': Math.random()
 		},
 		function(data, status) {
 			if((status == 'notmodified') || (status == 'success')) {
