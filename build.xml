@@ -1,0 +1,29 @@
+<project name="Natter" default="main">
+	<property name="version" value="5.1.0" />
+	<property name="target_dir" value="../${install_dir}" />
+
+	<target name="main">
+		<echo msg="There is no main task." />
+	</target>
+
+	<target name="install">
+		<echo msg="Installing to ${install_dir}" />
+		<mkdir dir="${target_dir}" />
+		<copy todir="${target_dir}">
+			<fileset dir=".">
+				<include name="*.php" />
+				<include name="*.cgi" />
+				<exclude name="config.*" /><!-- All PHP and CGI files, except config -->
+				<include name="*.js" />
+				<include name="Natter/" />
+				<include name="ext/" />
+				<include name="templates/" />
+				<include name="ajax*" />
+				<include name="*.png" />
+				<exclude name="**/.svn" /><!-- No SVN -->
+			</fileset>
+		</copy>
+		<echo msg="Done." />
+	</target>
+</project>
+
