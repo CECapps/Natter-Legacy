@@ -1,7 +1,6 @@
 <pre>
 $Id$
-text:
-<hr />
+<hr>original text:
 <?php
 
 error_reporting(E_ALL | E_STRICT);
@@ -26,12 +25,131 @@ NEXT: OPEN B
 NEXT: CLOSE S.
 [/s]
 THERE.';
-$actual_text = $demo_text2;
+$demo_text5 = 'What happens when there is an [i]un[b]closed[/i] tag?';
 
+$demo_text99 = <<<DELIM
+Hello [b]there[/b]!  [img]http://flare.solareclipse.net/biggrin.gif[/img] is a biggrin!!111on
+And here's a right-aligned one:
+[img:right]http://flare.solareclipse.net/biggrin.gif[/img]
+And now a center that is also invalid.
+[img:center]javascript:echo('http://flare.solareclipse.net/biggrin.gif')[/img]
+[color:purple]Yup, right![/color]
+eoneuno  [b]My na[me is [i]C[u]ha[s]r[/s]le[/u]s[/i][/b].
+How are y]ou?  I'm doing fine.
+
+Let's insert a table, for fun.
+
+[literal]<table border=2 what=lol>
+    <thead>
+        <tr>
+            <th>1</th>
+            <th>2</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>3</td>
+            <td>4</td>
+        </tr>
+    </tbody>
+</table>[/literal]
+
+How about an <cite>illegal tag</cite>?
+
+My URL is [URL=http://solareclipse.net/]solareclipse.net[/url] (not [url]www.solareclipse.net[/url] or [url]www.[b]solareclipse[/b].net[/url])!
+
+Does autolinking work?  www.google.com or maybe http://solareclipse.net/rofflesauce.html
+
+My List is [list][*]One[*]Two[*]Three[/list] - isn't that grand?  Hey, can I do nested lists?
+
+[list=1]
+[*]First item
+[*]Second item[list]
+[*]First Nested Item
+[*]Second Nested Item
+[list=a][*]Hey, look, it's a third level nesting!
+[*]And a second third level item.
+[/list]
+[*]Third nested item, on [email]charles@infopop.com[/email] the first nesting level
+[*]And [color:red]number[/color] four
+[list=I]
+[*]Roman One, and does the [email=capps@solareclipse.net]alternate format[/email] for the email tag work?
+[*]Roman Two
+[list=i]
+[*]roman one, here's a [url=http://domain.com/page name with spaces.html]URL with spaces[/url] to test.
+[*]roman two
+[*]roman three with a [email]bog+us@email address[/email]
+[/list]
+[*]Roman Three
+[/list]
+[/list]
+[*]Third item, no nesting, but with a [url=http://domain.com/page.php?thing[]=1]URL with square brackets[/url] instead.
+[/list]
+
+Fantastic!!!111eleven  And now, ten blank newlines.
+
+
+
+
+
+
+
+
+
+
+But how does it deal with an [b]unclosed bold tag?
+
+[quote]Let's break the parse tree:[/quote]
+
+[b]Bold open.[i]Ital open.[/b]Bold close - oops![/i]Ital closed.
+
+And again inside code tags:
+
+[code][b]Bold open.[i]Ital open.[/b]Bold close - oops![/i]Ital closed.
+
+There were two newlines before this one.[/code]
+
+And now, deep nesting.
+
+0[quote]1[quote]2[quote]3[quote]4[quote]5[quote]6[quote]7[quote]8[quote]9[/quote]8[/quote]7[/quote]6[/quote]5[/quote]4[/quote]3[/quote]2[/quote]1[/quote]0
+
+How about a [quote=Somebody]quote from Somebody?[/quote]
+
+How are [quote=Some person or another]spaces handled in param names?[/quote]
+
+What does my [quote=Name with post number,1234]post attribution[/quote] look like?
+
+OKay, cool.  How about a [mr]tag now?[/mr]
+
+Or maybe [fl]the fl tag[/fl] will work?
+
+And finally, let's get fucked up.
+
+[list=I][*]Roman One Again
+[*]Roman Two Again
+[*]OH SHIT A QUOTE [quote]ROFFLESAUCE[*]This should break shit WONDERFULLY[/quote] HAHAHAH
+[*]And here's roman four.
+[/list]
+
+How about [sub]subscript[/sub] and [sup]superscript[/sup]?
+
+End.
+DELIM;
+
+
+$actual_text = $demo_text99;
+
+echo $actual_text;
+echo '<hr>Parse:<br>';
 $parser = new Natter_BBCode();
 $parser->set($actual_text);
+echo '<hr>renderBBCode:<br>';
 echo $parser->renderBBCode();
-
+echo '<hr>renderPlainText:<br>';
+echo $parser->renderPlainText();
+echo '<hr>renderHTML:<br>';
+echo $parser->renderHTML();
+echo '<hr>';
 
 
 
@@ -39,7 +157,7 @@ echo $parser->renderBBCode();
 
 class Natter_BBCode {
 
-	private $tags = array();
+	public $tags = array();
 	private $tag_regex = '';
 	private $body = '';
 	private $nodes = array();
@@ -58,15 +176,16 @@ class Natter_BBCode {
  * Initialize the tag list
  **/
 	protected function initTags() {
-		$this->tags['b'] = new Natter_BBCodeTag('b', 0, null, null);
-		$this->tags['i'] = new Natter_BBCodeTag('i', 0, null, null);
-		$this->tags['u'] = new Natter_BBCodeTag('u', 0, null, null);
-		$this->tags['s'] = new Natter_BBCodeTag('s', 0, null, null);
-		$this->tags['color'] = new Natter_BBCodeTag('color', 1, null, null);
+		$this->tags['b'] = new Natter_BBCodeTagRenderer_B();
+		$this->tags['i'] = new Natter_BBCodeTagRenderer_I();
+		$this->tags['u'] = new Natter_BBCodeTagRenderer_U();
+		$this->tags['s'] = new Natter_BBCodeTagRenderer_S();
+		// $this->tags['color'] =
 		$regex_stuff = array();
-		foreach($this->tags as $tag)
-			$regex_stuff[] = $tag->getOpenRegex();
+		foreach($this->tags as $tag => $j)
+			$regex_stuff[] = '^(' . $tag . ')(?:[\=\:](.+?))?$';
 		$this->tag_regex = join('|', $regex_stuff);
+		$this->tags['BROKEN'] = new Natter_BBCodeTagRenderer_BrokenTag();
 	} // end initTags
 
 
@@ -112,6 +231,14 @@ class Natter_BBCode {
  * @return string
  **/
 	public function renderHTML() {
+		$children = $this->tree['__root__']['children'];
+		$buffer = '';
+		foreach($children as $child_id) {
+			$buffer .= $this->tree[$child_id]['type'] == 'text'
+							? $this->tree[$child_id]['body']
+							: $this->tags[ $this->tree[$child_id]['tag'] ]->renderHTML($this, $this->tree, $child_id);
+		} // end foreach
+		return $buffer;
 	} // end renderHTML
 
 
@@ -125,7 +252,7 @@ class Natter_BBCode {
 		foreach($children as $child_id) {
 			$buffer .= $this->tree[$child_id]['type'] == 'text'
 							? $this->tree[$child_id]['body']
-							: $this->tags[ $this->tree[$child_id]['tag'] ]->renderBBCode($this->tree, $child_id);
+							: $this->tags[ $this->tree[$child_id]['tag'] ]->renderBBCode($this, $this->tree, $child_id);
 		} // end foreach
 		return $buffer;
 	} // end renderBBCode
@@ -136,6 +263,14 @@ class Natter_BBCode {
  * @return string
  **/
 	public function renderPlainText() {
+		$children = $this->tree['__root__']['children'];
+		$buffer = '';
+		foreach($children as $child_id) {
+			$buffer .= $this->tree[$child_id]['type'] == 'text'
+							? $this->tree[$child_id]['body']
+							: $this->tags[ $this->tree[$child_id]['tag'] ]->renderPlainText($this, $this->tree, $child_id);
+		} // end foreach
+		return $buffer;
 	} // end renderPlainText
 
 
@@ -193,7 +328,7 @@ class Natter_BBCode {
 				$tag_to_close = substr($tagset[$i + 1], 1);
 			// If the user isn't an idiot, we should now be closing the tag
 			// that we just opened a bit ago.  Are we lucky?
-				if($open_tags[0]['tag'] == $tag_to_close) {
+				if(isset($open_tags[0]) && $open_tags[0]['tag'] == $tag_to_close) {
 				// Yup, we're lucky.
 					$opener = array_shift($open_tags);
 				// Close her up.
@@ -279,6 +414,13 @@ class Natter_BBCode {
 			} // end if
 		} // end for
 
+	// Quickly neuter unclosed tags.
+		foreach($this->nodes as $node_id => $j)
+			if($j['type'] == 'tag' && is_null($j['closer'])) {
+				$this->nodes[$node_id]['unclosed_tag'] = $j['tag'];
+				$this->nodes[$node_id]['tag'] = 'BROKEN';
+			} // end if
+
 	// We now have a list of opens, texts, and closes.  Let's turn it into
 	// a nice happy tree.  Or rather, a virtual tree.  This is gonna be fun.
 		$this->tree = array(
@@ -294,7 +436,7 @@ class Natter_BBCode {
 			$node['id'] = $node_id;
 			$node['parent'] = $parent_node['id'];
 		// If we really belong to our parents, attach ourself
-			if($node['type'] == 'text' || $node['type'] == 'tag') 
+			if($node['type'] == 'text' || $node['type'] == 'tag')
 				$parent_node['children'][] = $node['id'];
 		// If we're a tag, we become the next iteration's parent.
 			if($node['type'] == 'tag')
@@ -331,7 +473,7 @@ class Natter_BBCode {
 		} // end while
 
 	// Voila, we have a tree.
-
+		// var_export($this->tree);
 	} // end parse
 
 
@@ -342,63 +484,148 @@ class Natter_BBCode {
 
 
 
-class Natter_BBCodeTag {
 
-	public $tag = '';
-	public $param_count = 0;
-	public $param_quoted = null;
-	public $param_separator = null;
-	public $param_list = array();
 
-	public function __construct($tag, $param_count, $param_quoted, $param_separator) {
+
+class Natter_BBCodeTagRenderer_Simple {
+	public $tag;
+	public $can_have_params = false;
+	public $multi_params = false;
+	public $multi_param_sep = false;
+	public $can_have_quoted_param = false;
+	public $force_quoted_param = false;
+
+	protected $html_open;
+	protected $html_close;
+
+	protected $param_callbacks = array();
+	protected $render_html_callbacks = array();
+	protected $render_bbcode_callbacks = array();
+	protected $render_text_callbacks = array();
+
+
+	function __construct($tag) {
 		$this->tag = $tag;
-		$this->param_count = $param_count;
-		$this->param_quoted = $param_quoted;
-		$this->param_separator = $param_separator;
 	} // end __construct
 
-	public function getOpenRegex() {
-		return '^(' . $this->tag . ( $this->param_count ? ')=(.+?)' : ')' ) .'$';
-	} // end getRegex
-
-	public function getCloseRegex() {
-		return '^/' . $this->tag . '$';
-	} // end getRegex
-
-	public function addParamCallback($callback) {
-	} // end addParamCallback
-
-	public function addRenderCallback($render_mode, $callback) {
-	} // end addRenderCallback
-
-	public function renderHTML() {
+	function renderHTML(Natter_BBCode &$bbcode, &$tree, $child_id) {
+		$node = $tree[$child_id];
+		$children = isset($node['children']) ? $node['children'] : array();
+		$buffer = $this->html_open;
+		foreach($children as $sub_child_id) {
+			$buffer .= $tree[$sub_child_id]['type'] == 'text'
+							? $tree[$sub_child_id]['body']
+							: $bbcode->tags[ $tree[$sub_child_id]['tag'] ]->renderHTML($bbcode, $tree, $sub_child_id);
+		} // end foreach
+		return $buffer . $this->html_close;
 	} // end renderHTML
 
-	public function renderBBCode(&$tree, $child_id) {
-		$children = isset($tree[$child_id]['children']) ? $tree[$child_id]['children'] : array();
+	function renderBBCode(Natter_BBCode &$bbcode, &$tree, $child_id) {
+		$node = $tree[$child_id];
+		$children = isset($node['children']) ? $node['children'] : array();
 		$buffer = '[' . $this->tag;
-		if($this->param_count) {
-			$buffer .= '=';
-			if($this->param_quoted)
-				$buffer .= '"';
-			if($this->param_count > 1)
-				$buffer .= join($this->param_separator, $this->param_list);
-			elseif($this->param_count == 1)
-				$buffer .= $this->param_list[0];
-			if($this->param_quoted)
-				$buffer .= '"';
+		if($this->can_have_params) {
+			$buffer .= (($this->can_have_quoted_param || $this->force_quoted_param) ? '"' : '')
+			         . $node['params']
+					 . (($this->can_have_quoted_param || $this->force_quoted_param) ? '"' : '');
 		} // end if
 		$buffer .= ']';
 		foreach($children as $sub_child_id) {
 			$buffer .= $tree[$sub_child_id]['type'] == 'text'
 							? $tree[$sub_child_id]['body']
-							: $this->tags[ $tree[$sub_child_id]['tag'] ]->renderBBCode($sub_child_id);
+							: $bbcode->tags[ $tree[$sub_child_id]['tag'] ]->renderBBCode($bbcode, $tree, $sub_child_id);
 		} // end foreach
 		return $buffer . '[/' . $this->tag . ']';
 	} // end renderBBCode
 
-	public function renderPlainText() {
+	function renderPlainText(Natter_BBCode &$bbcode, &$tree, $child_id) {
+		$node = $tree[$child_id];
+		$children = isset($node['children']) ? $node['children'] : array();
+		$buffer = '';
+		foreach($children as $sub_child_id) {
+			$buffer .= $tree[$sub_child_id]['type'] == 'text'
+							? $tree[$sub_child_id]['body']
+							: $bbcode->tags[ $tree[$sub_child_id]['tag'] ]->renderPlainText($bbcode, $tree, $sub_child_id);
+		} // end foreach
+		return $buffer;
 	} // end renderPlainText
 
-} // end Natter_BBCodeTag
+	function addParamCallback($callback) {}
+	function addRenderCallback($render_mode, $callback) {}
 
+}
+
+class Natter_BBCodeTagRenderer_B extends Natter_BBCodeTagRenderer_Simple {
+	public function __construct($tag = 'b') {
+		parent::__construct($tag);
+		$this->html_open = '<b>';
+		$this->html_close = '</b>';
+	} // end __construct
+}
+
+class Natter_BBCodeTagRenderer_S extends Natter_BBCodeTagRenderer_Simple {
+	public function __construct($tag = 's') {
+		parent::__construct($tag);
+		$this->html_open = '<s>';
+		$this->html_close = '</s>';
+	} // end __construct
+}
+
+class Natter_BBCodeTagRenderer_I extends Natter_BBCodeTagRenderer_Simple {
+	public function __construct($tag = 'i') {
+		parent::__construct($tag);
+		$this->html_open = '<i>';
+		$this->html_close = '</i>';
+	} // end __construct
+}
+
+class Natter_BBCodeTagRenderer_U extends Natter_BBCodeTagRenderer_Simple {
+	public function __construct($tag = 'u') {
+		parent::__construct($tag);
+		$this->html_open = '<u>';
+		$this->html_close = '</u>';
+	} // end __construct
+}
+
+
+class Natter_BBCodeTagRenderer_BrokenTag extends Natter_BBCodeTagRenderer_Simple {
+	public function __construct($tag = 'BROKEN') {
+		parent::__construct($tag);
+		$this->html_open = '';
+		$this->html_close = '';
+	} // end __construct
+
+	function renderBBCode(Natter_BBCode &$bbcode, &$tree, $child_id) {
+		$node = $tree[$child_id];
+		$children = isset($node['children']) ? $node['children'] : array();
+		$buffer = '';
+		if(isset($node['unclosed_tag'])) {
+			$buffer .= '[' . $node['unclosed_tag'];
+			if($this->can_have_params) {
+				$buffer .= (($this->can_have_quoted_param || $this->force_quoted_param) ? '"' : '')
+						 . $node['params']
+						 . (($this->can_have_quoted_param || $this->force_quoted_param) ? '"' : '');
+			} // end if
+		$buffer .= ']';
+		} // end if
+		foreach($children as $sub_child_id) {
+			$buffer .= $tree[$sub_child_id]['type'] == 'text'
+							? $tree[$sub_child_id]['body']
+							: $bbcode->tags[ $tree[$sub_child_id]['tag'] ]->renderBBCode($bbcode, $tree, $sub_child_id);
+		} // end foreach
+		return $buffer;
+	} // end renderBBCode
+
+	function renderHTML(Natter_BBCode &$bbcode, &$tree, $child_id) {
+		$node = $tree[$child_id];
+		$children = isset($node['children']) ? $node['children'] : array();
+		$buffer = isset($node['unclosed_tag']) ? '[' . $node['unclosed_tag'] . ']' : '';
+		foreach($children as $sub_child_id) {
+			$buffer .= $tree[$sub_child_id]['type'] == 'text'
+							? $tree[$sub_child_id]['body']
+							: $bbcode->tags[ $tree[$sub_child_id]['tag'] ]->renderHTML($bbcode, $tree, $sub_child_id);
+		} // end foreach
+		return $buffer;
+	} // end renderHTML
+
+}
