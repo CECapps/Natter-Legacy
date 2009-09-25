@@ -131,6 +131,7 @@ require "chat3_lib.cgi";
 		}));
 	} # end action_closed
 
+
 # If passwords are enabled, prompt the user to enter one
 	sub action_password_prompt {
 	# Check the session, is the user already OK?
@@ -174,6 +175,7 @@ PASSWORD_PROMPT
 		}));
 	} # end action_password_prompt
 
+
 # If passwords are enabled and the user provided one, check it
 	sub action_password_check {
 	# No session check here.
@@ -200,6 +202,7 @@ PASSWORD_PROMPT
 			footer => '',
 		}));
 	} # end action_password_check
+
 
 # Say hi to the user, ask them to indicate their age
 	sub action_intro {
@@ -246,8 +249,8 @@ COPPA_CHECK
 
 # Make sure the user is the correct age for the chat
 	sub action_coppa {
-	# Check for the sanity session flag
-		noEntry_Insane() unless defined $session->{data}->{sanity} && $session->{data}->{sanity} == 1;
+	# Set a sanity token for later checking -- this ensures that the user accepts cookies
+		$session->{data}->{sanity} = 1;
 	# Check for the passwordy bits
 		noEntry_MissingPassword() if($config->{ChatPassword} && (!defined $session->{data}->{password} || $session->{data}->{password} ne $config->{ChatPassword}));
 	# If they forged the form, they're underage
