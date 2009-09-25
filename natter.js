@@ -311,12 +311,11 @@ function chat_form_init() {
 function messages_refresh() {
 // Reset any active timeout.
 	clearTimeout(timeout);
-	$.getJSON(
+	$.post(
 		script_name,
 		{
 			'action': 'messages',
-			'newer_than': newest_id,
-			'r': Math.random()
+			'newer_than': newest_id
 		},
 		function(data, status) {
 			if((status == 'notmodified') || (status == 'success')) {
@@ -345,7 +344,8 @@ function messages_refresh() {
 			} // end if
 			timeout = setTimeout(messages_refresh, 8000);
 			newest_id = newest_message_id;
-		}
+		},
+		'json'
 	);
 } // end messages_refresh
 
