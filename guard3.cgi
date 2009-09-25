@@ -166,13 +166,7 @@ FORMBODY
 
 # Rewrite the frameset code to insert a section on the right
 	sub action_frameset {
-		my $file = openFile($config->{NonCGIPath} . "/chat.html");
-		my $frametop = qq(<frameset cols="*, 210" border="2">);
-		my $framebo = qq(<frame src="$config->{GuardScriptName}?action=list_users" name="ips" id="ips" scrolling="auto"></frameset>);
-		$file =~ s/\<\!-- GFS --\>/$frametop/;
-		$file =~ s/\<\!-- EGFS --\>/$framebo/;
-
-		$response->appendBody($file);
+		$response->addHeader('Location', $config->{IndexName});
 		&Exit();
 	} # end action_frameset
 
