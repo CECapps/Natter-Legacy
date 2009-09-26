@@ -329,10 +329,13 @@ function messages_refresh() {
 					var step = 250;
 					for(var i in new_messages) {
 						delay += step;
-						setTimeout(function(html, message_id, fade){
-							$('#message_container').prepend(html);
-							$('#message-' + message_id).hide().slideDown(fade);
-						}, delay, new_messages[i].html, new_messages[i].message_id, fade);
+						var ie_workaround_closure = function(html, message_id, fade, delay) {
+							setTimeout(function(){
+								$('#message_container').prepend(html);
+								$('#message-' + message_id).hide().slideDown(fade);
+							}, delay);
+						};
+						ie_workaround_closure(new_messages[i].html, new_messages[i].message_id, fade, delay);
 						delay += fade;
 					} // end for
 				// Now, prune excess messages, once the last message has been added.
