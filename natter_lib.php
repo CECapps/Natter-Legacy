@@ -17,7 +17,7 @@
 
 // Yeah, it's stored here.
 	global $VERSION, $VERSION_TAG;
-	$VERSION = '5.1.0';
+	$VERSION = '5.1.1';
 	$VERSION_TAG = '"Transgression"';
 
 // What's our configuration look like?
