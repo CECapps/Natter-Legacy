@@ -19,7 +19,7 @@ use lib('.', './ext');
 use strict;
 use warnings;
 use CGI qw(:standard);
-use CGI::Carp qw(fatalsToBrowser set_message);
+use CGI::Carp qw(warningsToBrowser fatalsToBrowser set_message);
 use JSON::PP;
 use Natter::Session;
 use Natter::HTTP_Request;

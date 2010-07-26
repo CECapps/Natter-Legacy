@@ -304,6 +304,7 @@ our $VERSION_TAG = '"Transgression"';
 			$config->{$row->[0]} = $row->[1];
 		} # end while
 	# More defaults.
+        $config->{TimeZoneCode} ||= 'America/Los_Angeles';
 	# The lameness filter is enabled by default
 		$config->{DisableLamenessFilter} ||= 0;
 	# Only reset the COPPA age if it actually has not been defined.
@@ -312,6 +313,7 @@ our $VERSION_TAG = '"Transgression"';
 	# very well when there are multiple instances of the scripts installed.
 	# No, using cookie domains or paths isn't a better solution ... for now.
 		$config->{CookiePrefix} ||= $config->{Script};
+        $config->{CookiePrefix} =~ s/\./_/g;
 	# Don't look for proxies by default
 		$config->{CheckProxyForward} ||= 0;
 	# Don't do HttpBL lookups by default
