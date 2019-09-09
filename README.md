@@ -58,28 +58,56 @@ The chat should now operate properly.  Visit `index.php` and try it out.
 
  - Most error messages are passed through raw from Perl or PHP.  Nine times out of ten, it's file permissions or ownership.  Google the error and see what comes up.
  - Sometimes the blasted thing won't create the SQLite file inside the database directory.  Use the `sqlite3` to create an empty database, and set permissions and ownership as needed.  The next time `chat3.cgi` runs, the schema will be updated.
+ - When in doubt, read the source.  There is no deep magic here.
 
 ## Usage
 
+> This section is a work in progress.
+
+There's nothing really surprising here, but it's worth talking about what to expect.
+
 ### Core Concepts
+
+There's a place where you type messages and a place where messages appear.
 
 ### User Interface
 
 #### For end-users
 
+So there's name, and name color.  And message color, because people are fancy sometimes.  Message wins if you don't set a name color.  This is very unintuitive.
+
+But there are also fields for a URL and an email address because the conceptual base of this code is really that goddamn old.  Except when you turn the captions thing on, because the Twilight folks wanted that to achieve feature parity.  It's actually a fun little feature.  Try it out.
+
 #### For Guards (Moderators)
+
+You also get a list of IP information about each chat message in a separate frame, as well as the ability to kick people out and ban them entirely, based on their IP address.
 
 #### For Administrators
 
+You also get settings!
+
 ## Inner Workings
+
+> This section is a work in progress.
 
 ### Theory of Operation
 
+It's a flat-file database that also happens to be a valid HTML file.
+
+Yup.  That's how it works.
+
+"But Charles," you cry in protest, "isn't SQLite one of the requirements?!"
+
+Correct, but that just stores settings and admin/guard logins, and bans.
+
 #### Historical Origins
 
+*Oh boy* let me tell you about SDUChat!
+
 #### "Bots & Proxies"
+
+*Oh boy* let me tell you about Kevin and Feenix!
 
 ### Original Project Goals
 
 See the TODO file that was removed during the commit that added this line.
-

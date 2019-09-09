@@ -13,8 +13,8 @@ use DateTime;
 use Socket;
 
 # CAUTION: Spaghetti code ahead.
-our $VERSION = '5.1.1';
-our $VERSION_TAG = '"Transgression"';
+our $VERSION = '5.1.2';
+our $VERSION_TAG = '"Transmogrification"';
 
 
 # Create a "Powered By" HTML blub
