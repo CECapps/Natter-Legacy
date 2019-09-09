@@ -1,0 +1,8 @@
+config.inc.php
+config.cgi
+messages*
+rules.html
+chattop.html
+database/*
+logs/*
+sessions/*

@@ -1,43 +1,35 @@
 <?php
-/**
- * Natter 5.0
- * Copyright 1999-2009 Charles Capps
+/*******************************************************************************
+ * This file is part of Natter, a legacy web chat in Perl and PHP.
+ * Copyright 1999-2019 Charles Capps <charles@capps.me>
  *
- * This software is covered by a license agreement.
- * If you do not have a license for this software, please
- * contact <capps@solareclipse.net> immediately.
- *
- * Using this software without a valid license is a violation
- * of the author's rights and is often illegal.
- *
- * Distribution of this script is stricly prohibited.
- *
- * Questions?  Comments?  <capps@solareclipse.net>
- **/
+ * This software is covered by the license agreement in the LICENSE file.
+ * If the LICENSE file was not included, please contact the author.
+ ******************************************************************************/
 
 class Natter_Action_Chattop implements Natter_Action {
 
 /** @property Natter_HTTPRequest */
-	protected $request;
+    protected $request;
 /** @property Natter_HTTPResponse */
-	protected $response;
+    protected $response;
 /** @property Natter_Session */
-	protected $session;
+    protected $session;
 
-	public function __construct(Natter_HTTPRequest $request, Natter_HTTPResponse $response, Natter_Session $session) {
-		$this->request = $request;
-		$this->response = $response;
-		$this->session = $session;
-	} // end __construct
+    public function __construct(Natter_HTTPRequest $request, Natter_HTTPResponse $response, Natter_Session $session) {
+        $this->request = $request;
+        $this->response = $response;
+        $this->session = $session;
+    } // end __construct
 
-	public function run() {
-		global $config;
-	// We use the "chattop" template.  Herf.
-		$template = new Natter_Template('chattop');
+    public function run() {
+        global $config;
+    // We use the "chattop" template.  Herf.
+        $template = new Natter_Template('chattop');
 
-		$html = $template->render();
-		$this->response->setBody($html);
-		return;
-	} // end run
+        $html = $template->render();
+        $this->response->setBody($html);
+        return;
+    } // end run
 
 }
