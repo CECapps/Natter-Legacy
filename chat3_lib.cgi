@@ -24,7 +24,7 @@ our $VERSION_TAG = '"Transmogrification"';
 		$version_number .= " <i>$VERSION_TAG</i>" if($VERSION_TAG);
 		my $dt = getTime();
 		my $current_year = $dt->year;
-		return qq~<a href="http://natter.pleh.net/" target="_blank">Powered by Natter $version_number</a>~ . ($include_copyright ? qq~<br />Copyright 1999-$current_year Charles Capps~ : '');
+		return qq~<a href="https://github.com/CECapps/Natter-Legacy" target="_blank">Powered by Natter $version_number</a>~ . ($include_copyright ? qq~<br />Copyright 1999-$current_year Charles Capps~ : '');
 	} # end createPoweredBy
 
 
