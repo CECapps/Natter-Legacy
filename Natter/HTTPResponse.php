@@ -12,7 +12,7 @@
 class Natter_HTTPResponse {
 
     private $headers = array(
-        'Content-type' => 'text/html'
+        'Content-Type' => 'text/html; charset=utf-8'
     );
     private $cookies = array();
     private $body = '';
@@ -38,12 +38,12 @@ class Natter_HTTPResponse {
 // Set the content type, defaults to text/html
     public function setContentType($mime_type) {
         if(!$this->canOutput()) trigger_error('Can not set content type, already posted output', E_USER_ERROR);
-        $this->headers['Content-type'] = $mime_type;
+        $this->headers['Content-Type'] = $mime_type;
     } // end setContentType
 
 // Return the current content type
     public function getContentType() {
-        return $this->headers['Content-type'];
+        return $this->headers['Content-Type'];
     } // end getContentType
 
 // Set the HTTP status
@@ -110,7 +110,7 @@ class Natter_HTTPResponse {
     // buffering to the original Perl code.  It's being kept because the next
     // steps in the port are a "quick and dirty" port of the Perl code to PHP,
     // in which I'd rather not have to rethink the entire design of the code.
-    // This class (and HTTPRequest) will probably be refectored out of existence
+    // This class (and HTTPRequest) will probably be refactored out of existence
     // at some point or another before the public release.
         $this->body .= ob_get_clean();
         $this->addHeader('Content-length', strlen($this->body));

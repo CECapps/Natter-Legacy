@@ -863,7 +863,7 @@ WHOSITS
 		unshift(@messages, $newline);
 		@messages = @messages[0 .. ($config->{MessageLimit} - 1)];
 	# Reassemble the chat lines
-		push(@lines, qq(<html><head><meta http-equiv="refresh" content="$config->{RefreshRate}"><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white">));
+		push(@lines, qq(<html><head><meta http-equiv="refresh" content="$config->{RefreshRate}"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white">));
 		push(@lines, @messages);
 		my $powered_by = createPoweredBy(1);
 		push(@lines, qq(<p class="timeline">All times are $config->{TimeZoneName}</p><p class="copy">$powered_by</p></body></html>\n));
@@ -889,7 +889,7 @@ WHOSITS
 	# If we're the first new line in the log, add a proper HTML header
 		if($isnew) {
 			my $new_timestamp = $dt->strftime('%Y-%m-%d %H:%M:%S');
-			print $fh qq(<html><head><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white"> Log started: $new_timestamp<br /><br /> \n);
+			print $fh qq(<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style type="text/css"> body { background-color: black; color: white; } </style><link rel="stylesheet" href="$config->{CSSName}" type="text/css" /></head><body bgcolor="black" text="white"> Log started: $new_timestamp<br /><br /> \n);
 		} # end if
 	# IP address?  I see no IP address here.  What are you talking about?
 		print $fh "$_[0]<!-- " . currentIP() . " -->\n";

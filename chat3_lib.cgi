@@ -524,9 +524,11 @@ FORMAT
 		my $cache_buster = rand() * 100_000;
 
 		return <<STANDARDhtml;
+<!DOCTYPE html>
 <html>
 <head>
 	<title>$loltitle</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<link rel="stylesheet" href="$config->{CSSName}" type="text/css" />
 	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
 	<script type="text/javascript" src="$config->{NonCGIURL}/natter.js?cache_buster=$cache_buster"></script>

@@ -21,7 +21,7 @@ package Natter::HTTP_Response;
 		my $class = shift;
 		my $options = {
 			_headers => {
-				'Content-Type' => 'text/html',
+				'Content-Type' => 'text/html; charset=utf-8',
 			},
 			_status => 200,
 			_status_message => '',
