@@ -195,7 +195,7 @@ package Natter::BanManager;
 			  FROM ip_bans
 			 WHERE ip IN(?, ?, ?)
 			       AND lifted >= ?
-				   AND cleared > 0
+				   AND cleared = 0
 			 ORDER BY duration DESC
 			 LIMIT 1
 			',

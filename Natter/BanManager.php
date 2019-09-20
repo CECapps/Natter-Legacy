@@ -13,14 +13,14 @@ class Natter_BanManager {
     public static function checkIPBan($ip_address = '127.0.0.1') {
         global $dbh;
         $ip_splode = explode('.', $ip_address);
-        $ip_3 = join('.', $ip[0], $ip[1], $ip[2], 0);
-        $ip_3 = join('.', $ip[0], $ip[1], 0,      0);
-        $dbh->queryAssoc('
+        $ip_2 = join('.', [$ip_splode[0], $ip_splode[1], $ip_splode[2], 0]);
+        $ip_3 = join('.', [$ip_splode[0], $ip_splode[1], 0,             0]);
+        return $dbh->queryAssoc('
             SELECT *
               FROM ip_bans
              WHERE ip IN(?, ?, ?)
                    AND lifted >= ?
-                   AND cleared > 0
+                   AND cleared = 0
              ORDER BY duration DESC
              LIMIT 1
         ',
