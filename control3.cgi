@@ -571,21 +571,26 @@ YEGODS_SO_MUCH_HTML
 		~;
 		my $dbh = getDBHandle();
 		$dbh->do('BEGIN TRANSACTION');
-		$dbh->do('DELETE FROM settings');
-		my $sth = $dbh->prepare('INSERT INTO settings(name,value) VALUES(?,?)');
+		my $delh = $dbh->prepare('DELETE FROM settings WHERE name = ?');
+		my $insh = $dbh->prepare('INSERT INTO settings(name,value) VALUES(?,?)');
 		foreach my $setting_name (@numeric_settings) {
-			$sth->execute($setting_name, $in{$setting_name} + 0);
+			$delh->execute($setting_name);
+			$insh->execute($setting_name, $in{$setting_name} + 0);
 		} # end foreach
 		foreach my $setting_name (@bool_settings) {
-			$sth->execute($setting_name, (int $in{$setting_name} ? 1 : 0));
+			$delh->execute($setting_name);
+			$insh->execute($setting_name, (int $in{$setting_name} ? 1 : 0));
 		} # end foreach
 		foreach my $setting_name (@negative_bool_settings) {
-			$sth->execute($setting_name, ($in{$setting_name} ? 0 : 1));
+			$delh->execute($setting_name);
+			$insh->execute($setting_name, ($in{$setting_name} ? 0 : 1));
 		} # end foreach
 		foreach my $setting_name (@string_settings) {
-			$sth->execute($setting_name, $in{$setting_name});
+			$delh->execute($setting_name);
+			$insh->execute($setting_name, $in{$setting_name});
 		} # end foreach
-		$sth->finish();
+		$delh->finish();
+		$insh->finish();
 		$dbh->do('COMMIT');
 
 		$response->setBody(standardHTML({
