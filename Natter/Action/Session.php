@@ -58,7 +58,7 @@ class Natter_Action_Session implements Natter_Action {
 
         // There are two ban levels - session, and IP.  Session bans ("kicks") are recorded in session data, under the
         // top level session key 'kicked', and by the two data keys 'kick_by' and 'kick_reason'.  IP bans are recorded
-        // in the database.  Every request to chat3 checks the IP ban list and will recored ban data in the session
+        // in the database.  Every request to chat3 checks the IP ban list and will recorded ban data in the session
         // if req'd.  Users can go quite a while between chat3 requests, so we'll just check and update it now.
         // session->kicked is the unixtime of the ban ending.
         // 'kick_by' is the string guard login name of the banning guard, which we will not use here.
@@ -71,6 +71,15 @@ class Natter_Action_Session implements Natter_Action {
             $kick_expires = null; //  it'll be zero otherwise, which is inconsistent with the other values
         }
         $kick_reason = $is_kicked ? $this->session->data['kick_reason'] : null;
+
+        // As mentioned above, if the user indicates that they're underage, chat3 will actively reject all subsequent
+        // requests with a "go away" message.  Rather than build an entirely separate mechanism to tell the user, let's
+        // hikack the kick reason.  Nothing could possibly go wrong with this plan.
+        if(!$is_kicked && $config['COPPAAge'] > 0 && $this->session->data['COPPA'] == 'under') {
+            $is_kicked = true;
+            $kick_expires = strtotime('now + 12 hours'); // session length
+            $kick_reason = 'Sorry, those under the age of ' . $config['COPPAAge'] . ' may not chat here.';
+        }
 
         $session_data = [
             'is_valid'          => $is_valid,
